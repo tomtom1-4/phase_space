@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <iomanip>
+#include <algorithm>
 #include "Exception.hpp"
 #include "Utilities.hpp"
 
@@ -61,6 +62,8 @@ Momentum operator/(Momentum p, double a);
 
 Momentum operator*(LorentzMatrix lam, Momentum p);
 
+Momentum operator-(Momentum p);
+
 LorentzMatrix operator*(LorentzMatrix lam1, LorentzMatrix lam2);
 
 class PhaseSpace {
@@ -75,7 +78,7 @@ class PhaseSpace {
       return momenta.size();
     }
 
-    void check_momentum_conservation(double acc);
+    void check_momentum_conservation(double acc = 1.e-8);
 
     void check_onshellness(double acc);
 
@@ -100,9 +103,13 @@ class PESCPhaseSpace : public PhaseSpace  {
     std::vector<Cluster> cluster;
 };
 
+double rnd(double lower, double upper);
+
 double RAMBO_measure(int nMomenta, double COM);
 
 PhaseSpace RAMBO(const int nMomenta, const double COM);
+
+PhaseSpace Splitting(int nMomenta, double COM, std::vector<std::vector<double>> x);
 
 PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster);
 

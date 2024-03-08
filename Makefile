@@ -1,3 +1,5 @@
+LIBS = -lcuba -lm
+
 main.exe : main.o src/PhaseSpace.o src/Utilities.o
 		g++  -std=c++17 -O3 -o $@ $^ $(LIBS)
 

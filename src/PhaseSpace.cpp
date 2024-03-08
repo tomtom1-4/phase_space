@@ -80,6 +80,10 @@ Momentum operator*(Momentum p, double a) {
   return a*p;
 }
 
+Momentum operator-(Momentum p) {
+  return (-1.)*p;
+}
+
 Momentum operator/(Momentum p, double a) {
   return (1./a)*p;
 }
@@ -167,7 +171,7 @@ LorentzMatrix rotation(double x, double y, double z) {
 }
 
 LorentzMatrix find_LT(Momentum v1, Momentum v2) {
-  // Updates the array Lambda to be the Lorentz transformation matrix between v1 = Lambda * v2
+  // Returns Lambda to be the Lorentz transformation matrix between v1 = Lambda * v2
   //First check if vectors are compatible
   double m1 = v1.inv_mass();
   double m2 = v2.inv_mass();
@@ -201,7 +205,7 @@ LorentzMatrix find_LT(Momentum v1, Momentum v2) {
     v2_hat = v2/ v2_abs; //Normalize v2_hat
   }
   else {
-    std::cout << "Fail safe solution (v1, v2 < 1.E-10); v1_abs = \t" << v1_abs << "\t v2_abs = \t" << v2_abs << std::endl;
+    //std::cout << "Fail safe solution (v1, v2 < 1.E-10); v1_abs = \t" << v1_abs << "\t v2_abs = \t" << v2_abs << std::endl;
     if (v1_abs < 1.E-10 and v2_abs > 1.E-10) {
       v2_hat = v2/ v2_abs; //Normalize v2_hat
     }
@@ -248,6 +252,69 @@ LorentzMatrix find_LT(Momentum v1, Momentum v2) {
   LorentzMatrix Lambda = boost*R;
   return Lambda;
 }
+
+PhaseSpace Splitting(int nMomenta, double COM, std::vector<std::vector<double>> x) {
+  // Generate Phase space point with nMomenta momenta
+  // x must be of length {{n - 2}, {n - 1}, {n - 1}}
+  PhaseSpace output;
+
+  std::vector<double> M(nMomenta - 1);
+  std::vector<double> cos(nMomenta - 1);
+  std::vector<double> phi(nMomenta - 1);
+
+  M[0] = COM;
+  for(int i = 1; i < nMomenta - 1; i++) {
+    M[i] = x[0][i-1]*M[i-1];
+  }
+  for(int i = 0; i < x[1].size(); i++) cos[i] = 1. - 2.*x[1][i];
+  for(int i = 0; i < x[2].size(); i++) phi[i] = 2.*M_PI*x[2][i];
+
+  std::reverse(M.begin(), M.end());
+  std::reverse(cos.begin(), cos.end());
+  std::reverse(phi.begin(), phi.end());
+
+  std::vector<Momentum> momenta;
+  double jacobian = 1./2./COM;
+  for(int i = 0; i < nMomenta - 1; i++) {
+    double sin = std::sqrt(1 - std::pow(cos[i],2));
+    double p0;
+    if(i == 0) p0 = M[0]/2.;
+    else {
+      p0 = (std::pow(M[i], 2) - std::pow(M[i - 1], 2))/2./M[i];
+      jacobian *= M[i];
+    }
+    jacobian *= p0/2.;
+    jacobian *= 2.*2.*M_PI;
+    double px = p0*sin*std::cos(phi[i]);
+    double py = p0*sin*std::sin(phi[i]);
+    double pz = p0*cos[i];
+    Momentum p(std::vector<double>({p0,px,py,pz}));
+
+    if(i != 0) {
+      Momentum pCOM(std::vector<double>({M[i], 0, 0, 0}));
+      Momentum pRest = pCOM - p;
+      Momentum pCOM_old = Momentum(std::vector<double>({M[i - 1], 0, 0, 0}));
+      // Find Transformation yielding pRest from (M_{i-1},0)
+      LorentzMatrix lam = find_LT(pRest, pCOM_old);
+      for(int j = 0; j < momenta.size(); j++) {
+        momenta[j] = lam*momenta[j];
+      }
+      momenta.push_back(p);
+    }
+    else {
+      momenta.push_back(p);
+      momenta.push_back(Momentum(std::vector<double>({p0, -px, -py, -pz})));
+    }
+  }
+  momenta.insert(momenta.begin(), Momentum(std::vector<double>({-COM/2., 0, 0, COM/2.})));
+  momenta.insert(momenta.begin(), Momentum(std::vector<double>({-COM/2., 0, 0, -COM/2.})));
+
+  output.momenta = momenta;
+  double normalization = std::pow(2.*M_PI, 4)/std::pow(2.*M_PI, 3*nMomenta);
+  output.weight = normalization*jacobian;
+  return output;
+}
+
 
 PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster) {
   PESCPhaseSpace pp_new;

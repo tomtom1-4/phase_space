@@ -1,18 +1,72 @@
 #include <iostream>
 #include "src/PhaseSpace.hpp"
+#include "/home/tom/Documents/software/software/Cuba-4.2.2/cuba.h"
+
+/*int cuba_example(const int *ndim, const cubareal x[], const int *ncomp, cubareal f[], void *userdata) {
+  f[0] = std::exp(-x[0]*x[0])/std::sqrt(M_PI);
+  //std::cout << x[0] << " => " << f[0] << std::endl;
+  return 0;
+}*/
+
+int integrand(const int *ndim, const cubareal x[], const int *ncomp, cubareal f[], void *userdata) {
+  std::vector<double> xM, xcos, xphi;
+  double *COM = static_cast<double*>(userdata);
+  int n = (*ndim + 4)/3;
+  for(int i = 0; i < *ndim; i++) {
+    if(i < n - 2) {
+      xM.push_back(x[i]);
+    }
+    else if ((i >= n - 2) and (i < 2*n - 3)) {
+      xcos.push_back(x[i]);
+    }
+    else {
+      xphi.push_back(x[i]);
+    }
+  }
+  std::vector<std::vector<double>> xPar = {xM, xcos, xphi};
+  PhaseSpace pp = Splitting(n, *COM, xPar);
+  f[0] = pp.weight;
+  return 0;
+}
+
 
 int main() {
   srand(12);
   double COM = 1000.;
-  int nBorn = 3;
+  int nBorn = 5;
   int nUnresolved = 0;
-  PhaseSpace pp = RAMBO(nBorn, COM);
+  std::vector<std::vector<double>> xPar;
+  {
+  std::vector<double> M, cos, phi;
+  for(int i = 0; i < nBorn - 2; i++) M.push_back(rnd(0., 1.));
+  for(int i = 0; i < nBorn - 1; i++) cos.push_back(rnd(0., 1.));
+  for(int i = 0; i < nBorn - 1; i++) phi.push_back(rnd(0., 1.));
+  xPar.push_back(M);
+  xPar.push_back(cos);
+  xPar.push_back(phi);
+  }
+  PhaseSpace pp = Splitting(nBorn, COM, xPar);
+
+  //PhaseSpace pp = RAMBO(nBorn, COM);
   std::cout << "Born Phase-Space Point:" << std::endl;
   pp.print();
   std::cout << "\nCheck Momentum Conservation:" << std::endl;
   pp.check_momentum_conservation(1.e-8);
   std::cout << "\nCheck On-Shellness:" << std::endl;
   pp.check_onshellness(1.e-8);
+
+  int sample_size = 100000;
+  cubareal x[3*nBorn - 4];
+  int spin = -1;
+  int neval;
+  int fail;
+  cubareal integral[1];
+  cubareal error[1];
+  cubareal prob[1];
+  Vegas(3*nBorn - 4, 1, *integrand, &COM, 1, 0.00001, 0.00001, 8, 12, 100, sample_size, 1000, 1000, 1000, 1, "", &spin, &neval, &fail, integral, error, prob);
+  std::cout << "integral = " << integral[0] << " +- " << error[0] << std::endl;
+  PhaseSpace control = RAMBO(nBorn, COM);
+  std::cout << "integralControl = " << control.weight << std::endl;
 
   Cluster cluster1(2, 1);
   Cluster cluster2(3, 2);
@@ -45,14 +99,30 @@ int main() {
   //double pp_Volume = RAMBO_measure(nBorn + nUnresolved, COM);
   //pp_Volume = 1./4./std::pow(2.*M_PI, 1) * std::pow(COM/2., 2);
 
+
+
+
   int samples = 100000;
   double var = 0., varRAMBO = 0;
   double err = 0., errRAMBO = 0;
   double result = 0., resultRAMBO = 0;
   for(int event_counter = 0; event_counter < samples; event_counter++) {
-    PhaseSpace pp = RAMBO(nBorn, COM);
-    PhaseSpace event = GenMomenta(pp, cluster);
-    PhaseSpace eventRAMBO = RAMBO(nBorn + nUnresolved, COM);
+    //PhaseSpace pp = RAMBO(nBorn, COM);
+    //PhaseSpace event = GenMomenta(pp, cluster);
+    //PhaseSpace eventRAMBO = RAMBO(nBorn + nUnresolved, COM);
+    std::vector<std::vector<double>> xPar;
+    {
+    std::vector<double> M, cos, phi;
+    for(int i = 0; i < nBorn - 2; i++) M.push_back(rnd(0., 1.));
+    for(int i = 0; i < nBorn - 1; i++) cos.push_back(rnd(0., 1.));
+    for(int i = 0; i < nBorn - 1; i++) phi.push_back(rnd(0., 1.));
+    xPar.push_back(M);
+    xPar.push_back(cos);
+    xPar.push_back(phi);
+    }
+
+    PhaseSpace event = Splitting(nBorn, COM, xPar);
+    PhaseSpace eventRAMBO = RAMBO(nBorn, COM);
 
     double integrand = 1;//std::exp(-std::pow(event.momenta[3]*event.momenta[5], 2));
     double integrandRAMBO = 1;//std::exp(-std::pow(eventRAMBO.momenta[3]*eventRAMBO.momenta[5], 2));
