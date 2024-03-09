@@ -315,8 +315,25 @@ PhaseSpace Splitting(int nMomenta, double COM, std::vector<std::vector<double>> 
   return output;
 }
 
+PhaseSpace Splitting(int nMomenta, double COM) {
+  std::vector<double> xM, xcos, xphi;
 
-PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster) {
+  for(int i = 0; i < 3*nMomenta - 4; i++) {
+    if(i < nMomenta - 2) {
+      xM.push_back(rnd(0, 1));
+    }
+    else if ((i >= nMomenta - 2) and (i < 2*nMomenta - 3)) {
+      xcos.push_back(rnd(0, 1));
+    }
+    else {
+      xphi.push_back(rnd(0, 1));
+    }
+  }
+  std::vector<std::vector<double>> xPar = {xM, xcos, xphi};
+  return Splitting(nMomenta, COM, xPar);
+}
+
+PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster, std::vector<std::vector<std::vector<double>>> xPar) {
   PESCPhaseSpace pp_new;
   pp_new.cluster = cluster;
   std::vector<double> x(pp_new.cluster.size(), 0.);
@@ -331,9 +348,9 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
     rTot = rTot + r;
     // Generate the unresolved momenta in the cluster
     for(int a = 0; a < pp_new.cluster[j].unresolved; a++) {
-      double eta = rnd(0., 1.);
-      double xi = rnd(0., 1.);
-      double phi = rnd(0., 1.)*2.*M_PI;
+      double eta = xPar[j][a][0];
+      double xi = xPar[j][a][1];
+      double phi = xPar[j][a][2]*2.*M_PI;
       double cos = 1. - 2.*eta;
       double sin = std::sqrt(1. - cos*cos);
       Momentum uhat(std::vector<double>({1., sin*std::cos(phi), sin*std::sin(phi), cos}));
@@ -409,4 +426,20 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
   }
   pp_new.weight = pp.weight*jacobian;
   return pp_new;
+}
+
+PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster) {
+  std::vector<std::vector<std::vector<double>>> xPar;
+  for(int j = 0; j < cluster.size(); j++) {
+    std::vector<std::vector<double>> xPar_Cluster;
+    for(int a = 0; a < cluster[j].unresolved; a++) {
+      std::vector<double> xPar_unresolved(3);
+      xPar_unresolved[0] = rnd(0, 1);
+      xPar_unresolved[1] = rnd(0, 1);
+      xPar_unresolved[2] = rnd(0, 1);
+      xPar_Cluster.push_back(xPar_unresolved);
+    }
+    xPar.push_back(xPar_Cluster);
+  }
+  return GenMomenta(pp, cluster, xPar);
 }

@@ -111,6 +111,10 @@ PhaseSpace RAMBO(const int nMomenta, const double COM);
 
 PhaseSpace Splitting(int nMomenta, double COM, std::vector<std::vector<double>> x);
 
+PhaseSpace Splitting(int nMomenta, double COM);
+
+PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster, std::vector<std::vector<std::vector<double>>> x);
+
 PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster);
 
 #endif
