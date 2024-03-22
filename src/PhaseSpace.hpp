@@ -5,8 +5,10 @@
 #include <cmath>
 #include <iomanip>
 #include <algorithm>
+#include <variant>
 #include "Exception.hpp"
 #include "Utilities.hpp"
+#include "Tree.hpp"
 
 class LorentzMatrix {
   public:
@@ -80,7 +82,7 @@ class PhaseSpace {
 
     void check_momentum_conservation(double acc = 1.e-8);
 
-    void check_onshellness(double acc);
+    void check_onshellness(double acc = 1.e-5);
 
     void print();
 
@@ -95,7 +97,7 @@ class Cluster {
     Cluster(int reference, int unresolved) : reference(reference), unresolved(unresolved) {};
     std::vector<Momentum> unresolved_momenta;
     Momentum reference_momentum;
-    double weight;
+    //double weight;
 };
 
 class PESCPhaseSpace : public PhaseSpace  {
@@ -116,5 +118,9 @@ PhaseSpace Splitting(int nMomenta, double COM);
 PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster, std::vector<std::vector<std::vector<double>>> x);
 
 PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster);
+
+PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std::vector<std::vector<std::vector<double>>> x);
+
+PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree);
 
 #endif

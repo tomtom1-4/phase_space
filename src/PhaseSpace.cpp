@@ -443,3 +443,46 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
   }
   return GenMomenta(pp, cluster, xPar);
 }
+
+PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std::vector<std::vector<std::vector<double>>> xPar) {
+  TreeNode<Cluster>* root = clusterTree.getRoot();
+  PhaseSpace pp_new = pp;
+  TreeNode<Cluster>* current = root;
+  int level_int = 0;
+  int clusterCounter = 0;
+  std::vector<TreeNode<Cluster>*> level = clusterTree.getLevel(level_int);
+  while(level.size() > 0) {
+    std::vector<Cluster> currCluster;
+    for(TreeNode<Cluster>* cluster : level) {
+      currCluster.push_back(cluster->data);
+    }
+    std::vector<std::vector<std::vector<double>>> currxPar;
+    for(int j = 0; j < currCluster.size(); j++) {
+      currxPar.push_back(xPar[clusterCounter]);
+      clusterCounter++;
+    }
+    pp_new = GenMomenta(pp_new, currCluster, currxPar);
+    level_int++;
+    level = clusterTree.getLevel(level_int);
+  }
+  return pp_new;
+}
+
+PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree) {
+  std::vector<std::vector<std::vector<double>>> xPar;
+  std::vector<TreeNode<Cluster>*> nodes = clusterTree.getNodes();
+  std::vector<Cluster> cluster;
+  for(auto& node : nodes) cluster.push_back(node->data);
+  for(int j = 0; j < cluster.size(); j++) {
+    std::vector<std::vector<double>> xPar_Cluster;
+    for(int a = 0; a < cluster[j].unresolved; a++) {
+      std::vector<double> xPar_unresolved(3);
+      xPar_unresolved[0] = rnd(0, 1);
+      xPar_unresolved[1] = rnd(0, 1);
+      xPar_unresolved[2] = rnd(0, 1);
+      xPar_Cluster.push_back(xPar_unresolved);
+    }
+    xPar.push_back(xPar_Cluster);
+  }
+  return GenMomenta2(pp, clusterTree, xPar);
+}
