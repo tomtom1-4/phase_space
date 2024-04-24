@@ -2,79 +2,7 @@
 #include "src/PhaseSpace.hpp"
 #include "src/Tree.hpp"
 #include "/home/tom/Documents/software/software/Cuba-4.2.2/cuba.h"
-
-
-/*int cuba_example(const int *ndim, const cubareal x[], const int *ncomp, cubareal f[], void *userdata) {
-  f[0] = std::exp(-x[0]*x[0])/std::sqrt(M_PI);
-  //std::cout << x[0] << " => " << f[0] << std::endl;
-  return 0;
-}*/
-
-struct UserData {
-  double COM;
-  std::vector<Cluster> cluster;
-  int nBorn;
-  UserData(double COM, int nBorn, std::vector<Cluster> cluster):COM(COM), nBorn(nBorn), cluster(cluster){}
-  UserData(){};
-};
-
-int integrand_born(const int *ndim, const cubareal x[], const int *ncomp, cubareal f[], void *userdata) {
-  std::vector<double> xM, xcos, xphi;
-  double *COM = static_cast<double*>(userdata);
-  int n = (*ndim + 4)/3;
-  for(int i = 0; i < *ndim; i++) {
-    if(i < n - 2) {
-      xM.push_back(x[i]);
-    }
-    else if ((i >= n - 2) and (i < 2*n - 3)) {
-      xcos.push_back(x[i]);
-    }
-    else {
-      xphi.push_back(x[i]);
-    }
-  }
-  std::vector<std::vector<double>> xPar = {xM, xcos, xphi};
-  PhaseSpace pp = Splitting(n, *COM, xPar);
-  f[0] = pp.weight;
-  return 0;
-}
-
-int integrand_full(const int *ndim, const cubareal x[], const int *ncomp, cubareal f[], void *userdata) {
-  std::vector<double> xM, xcos, xphi;
-  UserData *data = static_cast<UserData*>(userdata);
-
-  for(int i = 0; i < 3*(data->nBorn) - 4; i++) {
-    if(i < data->nBorn - 2) {
-      xM.push_back(x[i]);
-    }
-    else if ((i >= data->nBorn - 2) and (i < 2*data->nBorn - 3)) {
-      xcos.push_back(x[i]);
-    }
-    else {
-      xphi.push_back(x[i]);
-    }
-  }
-  std::vector<std::vector<double>> xPar = {xM, xcos, xphi};
-  PhaseSpace pp = Splitting(data->nBorn, data->COM, xPar);
-
-  int counter = 3*(data->nBorn) - 4;
-  std::vector<std::vector<std::vector<double>>> xPar_rest;
-  for(int i = 0; i < data->cluster.size(); i++) {
-    std::vector<std::vector<double>> xPar_cluster;
-    for(int j = 0; j < data->cluster[i].unresolved; j++) {
-      std::vector<double> xPar_unresolved(3);
-      xPar_unresolved[0] = x[counter];
-      xPar_unresolved[1] = x[counter + 1];
-      xPar_unresolved[2] = x[counter + 2];
-      counter += 3;
-      xPar_cluster.push_back(xPar_unresolved);
-    }
-    xPar_rest.push_back(xPar_cluster);
-  }
-  PhaseSpace pp_full = GenMomenta(pp, data->cluster, xPar_rest);
-  f[0] = pp_full.weight;
-  return 0;
-}
+#include "VEGAS_interface.hpp"
 
 
 int main() {
@@ -88,14 +16,14 @@ int main() {
   int spin = -1;
   int neval;
   int fail;
-  /*cubareal integral[1];
+  cubareal integral[1];
   cubareal error[1];
   cubareal prob[1];
-  Vegas(3*nBorn - 4, 1, *integrand_born, &COM, 1, 0.00001, 0.00001, 8, 12, 100, sample_size, 1000, 10000, 1000, 1, "", &spin, &neval, &fail, integral, error, prob);
+  Vegas(3*nBorn - 4, 1, *integrand_born, &COM, 1, 0.0001, 0.0001, 8, 12, 100, sample_size, 1000, 10000, 1000, 1, "", &spin, &neval, &fail, integral, error, prob);
   std::cout << "Born configuration:" << std::endl;
-  std::cout << "integral = " << integral[0] << " +- " << error[0] << "\t" << error[0]/integral[0]*100 << " %\t" << prob[0] << std::endl;*/
+  std::cout << "integral = " << integral[0] << " +- " << error[0] << "\t" << error[0]/integral[0]*100 << " %\t" << prob[0] << std::endl;
   PhaseSpace control = RAMBO(nBorn, COM);
-  //std::cout << "integralControl = " << control.weight << "\n\n" << std::endl;
+  std::cout << "integralControl = " << control.weight << "\n\n" << std::endl;
 
   Cluster cluster1(4, 3);
   Cluster cluster2(4, 2);
@@ -112,16 +40,23 @@ int main() {
   clusterTree.addChild(rootc, node1c);
   clusterTree.addChild(rootc, node2c);
 
-
-  /*UserData data(COM, nBorn, cluster);
-  Vegas(3*(nBorn + nUnresolved) - 4, 1, *integrand_full, &data, 1, 0.00001, 0.00001, 0, 12, 100, sample_size, 1000, 10000, 1000, 2, "", &spin, &neval, &fail, integral, error, prob);
-
+  UserData data(COM, nBorn, cluster);
+  Vegas(3*(nBorn + nUnresolved) - 4, 1, *integrand_full, &data, 1, 0.001, 0.001, 0, 12, 100, sample_size, 1000, 10000, 1000, 2, "", &spin, &neval, &fail, integral, error, prob);
   std::cout << "Full configuration:" << std::endl;
   std::cout << "integral = " << integral[0] << " +- " << error[0] << "\t" << error[0]/integral[0]*100 << " %\t" << prob[0] << std::endl;
   control = RAMBO(nBorn + nUnresolved, COM);
   std::cout << "integralControl = " << control.weight << std::endl;
   std::cout << "ratio = " << integral[0]/control.weight << std::endl;
-  std::cout << "deviation = " << (integral[0] - control.weight)/error[0] << std::endl;*/
+  std::cout << "deviation = " << (integral[0] - control.weight)/error[0] << std::endl;
+
+  UserData2 data2(COM, nBorn, nUnresolved, &clusterTree);
+  Vegas(3*(nBorn + nUnresolved) - 4, 1, *integrand_full2, &data2, 1, 0.001, 0.001, 0, 12, 100, sample_size, 1000, 10000, 1000, 2, "", &spin, &neval, &fail, integral, error, prob);
+  std::cout << "\n\nFull configuration2:" << std::endl;
+  std::cout << "integral = " << integral[0] << " +- " << error[0] << "\t" << error[0]/integral[0]*100 << " %\t" << prob[0] << std::endl;
+  control = RAMBO(nBorn + nUnresolved, COM);
+  std::cout << "integralControl = " << control.weight << std::endl;
+  std::cout << "ratio = " << integral[0]/control.weight << std::endl;
+  std::cout << "deviation = " << (integral[0] - control.weight)/error[0] << std::endl;
 
   // Test Infrared limits
   PhaseSpace pp = Splitting(nBorn, COM);

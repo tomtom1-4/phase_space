@@ -1,13 +1,18 @@
 LIBS = -lcuba -lm
 
-main.exe : main.o src/PhaseSpace.o src/Utilities.o src/Tree.o
+all: main.exe
+
+%.exe : %.o src/PhaseSpace.o src/Utilities.o src/Tree.o VEGAS_interface.o
 		g++  -std=c++17 -O3 -o $@ $^ $(LIBS)
 
-main.o : main.cpp src/PhaseSpace.cpp src/Utilities.cpp src/Tree.cpp
+%.o : %.cpp src/PhaseSpace.cpp src/Utilities.cpp src/Tree.cpp VEGAS_interface.cpp
 		g++ -std=c++17 -O3 -o $@ -c $< $(LIBS)
 
 clean:
 		rm -f *.o *.exe
 
-.PHONY: all clean
-.PRECIOUS: src/PhaseSpace.o src/Utilities.o src/Tree.o
+tests :
+		$(MAKE) -C tests
+
+.PHONY: all clean tests
+.PRECIOUS: src/PhaseSpace.o src/Utilities.o src/Tree.o VEGAS_interface.o
