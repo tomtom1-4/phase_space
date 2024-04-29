@@ -3,7 +3,7 @@
 int main() {
   srand(12);
   double COM = 1000.;
-  int nBorn = 3;
+  int nBorn = 2;
   int nUnresolved = 1;
   int reference_index = 3;
   TreeNode<Cluster>* rootc = new TreeNode<Cluster>(Cluster(reference_index, 1));
@@ -14,6 +14,7 @@ int main() {
   std::cout << "\033[1;37m--Test Phase space generation...\033[0m\n" << std::endl;
   PhaseSpace pp = Splitting(nBorn, COM);
   PhaseSpace pp_test = GenMomenta2(pp, clusterTree);
+  clusterTree.print();
   {
   bool fail = false;
   double acc = 1.e-6;

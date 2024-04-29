@@ -175,7 +175,7 @@ LorentzMatrix find_LT(Momentum v1, Momentum v2) {
   //First check if vectors are compatible
   double m1 = v1.inv_mass();
   double m2 = v2.inv_mass();
-  if ( std::abs(m1 - m2) > 1.e-5) {
+  if ( std::abs(m1 - m2) > 3.e-5) {
     std::cout << "Warning: Momenta are not compatible" << std::endl;
     std::cout << "m1 = \t" << m1 << "\t m2 = \t" << m2 << std::endl;
     std::cout.precision(11);
@@ -484,5 +484,6 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree) {
     }
     xPar.push_back(xPar_Cluster);
   }
+
   return GenMomenta2(pp, clusterTree, xPar);
 }

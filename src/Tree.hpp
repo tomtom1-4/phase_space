@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <string>
 
 template <typename T>
 struct TreeNode {
@@ -28,8 +29,43 @@ private:
     }
   }
 
+  // Recursive function to copy a tree
+  TreeNode<T>* copyNode(const TreeNode<T>* node, TreeNode<T>* parent = nullptr) const {
+    if (node == nullptr) {
+      return nullptr;
+    }
+
+    // Create a new node with the same data
+    TreeNode<T>* newNode = new TreeNode<T>(node->data);
+    newNode->level = node->level;
+    newNode->parent = parent;
+
+    // Recursively copy the children
+    for (const auto& child : node->children) {
+      TreeNode<T>* copiedChild = copyNode(child, newNode);
+      newNode->children.push_back(copiedChild);
+    }
+
+    return newNode;
+  }
+
+  void print(int x, int y, int ySpace, TreeNode<T>* node, std::vector<std::vector<int>> &array);
+
 public:
+  void print();
+
   Tree() : root(nullptr) {}
+
+  // Copy constructor
+  Tree(const Tree& original) {
+    // Deep copy the entire tree structure
+    if (original.root != nullptr) {
+      root = copyNode(original.root);
+    }
+    else {
+      root = nullptr;
+    }
+  }
 
   ~Tree() {
     destroyTree(root);
@@ -43,17 +79,7 @@ public:
     root = node;
   }
 
-  void addChild(TreeNode<T>* parent, TreeNode<T>* child) {
-    // If no root selected, the child will become the root
-    if (root == nullptr) {
-      root = child;
-      parent = nullptr;
-      return;
-    }
-    parent->children.push_back(child);
-    child->parent=parent;
-    child->level = parent->level + 1;
-  }
+  void addChild(TreeNode<T>* parent, TreeNode<T>* child);
 
   void getNodes(TreeNode<T>* node, std::vector<TreeNode<T>*> &allNodes) const {
     if(node != nullptr) {
@@ -81,7 +107,7 @@ public:
     return levelNodes;
   }
 
-  void preorderTraversal(TreeNode<T>* node) {
+  /*void preorderTraversal(TreeNode<T>* node) {
     if (node != nullptr) {
       if(node->parent != nullptr) {
         if((node->parent->children.size() > 1) and (node == node->parent->children[0])) std::cout << "{";
@@ -109,7 +135,10 @@ public:
 
   void preorderTraversal() {
     preorderTraversal(root);
-  }
+  }*/
 };
+
+//template <typename T>
+//Tree<T> generate_Tree(int nReference, int nUnresolved);
 
 #endif

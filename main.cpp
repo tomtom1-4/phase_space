@@ -39,6 +39,7 @@ int main() {
   clusterTree.setRoot(rootc);
   clusterTree.addChild(rootc, node1c);
   clusterTree.addChild(rootc, node2c);
+  clusterTree.print();
 
   UserData data(COM, nBorn, cluster);
   Vegas(3*(nBorn + nUnresolved) - 4, 1, *integrand_full, &data, 1, 0.001, 0.001, 0, 12, 100, sample_size, 1000, 10000, 1000, 2, "", &spin, &neval, &fail, integral, error, prob);
