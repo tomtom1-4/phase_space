@@ -94,7 +94,10 @@ class Cluster {
   public:
     int reference; // index of the reference momentum
     int unresolved; // number of unresolved partons
+    bool isReference;
     Cluster(int reference, int unresolved) : reference(reference), unresolved(unresolved) {};
+    Cluster(bool isReference) : isReference(isReference) {};
+    Cluster() {};
     std::vector<Momentum> unresolved_momenta;
     Momentum reference_momentum;
     //double weight;
@@ -122,5 +125,7 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
 PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std::vector<std::vector<std::vector<double>>> x);
 
 PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree);
+
+std::vector<Tree<Cluster>> GenTrees(int nUnresolved);
 
 #endif

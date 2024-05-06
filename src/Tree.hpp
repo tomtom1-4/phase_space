@@ -9,6 +9,7 @@ template <typename T>
 struct TreeNode {
   T data;
   int level = 0;
+  int index = 0;
   std::vector<TreeNode<T>*> children;
   TreeNode* parent;
 
@@ -19,7 +20,6 @@ template <typename T>
 class Tree {
 private:
   TreeNode<T>* root;
-
   void destroyTree(TreeNode<T>* node) {
     if (node != nullptr) {
       for (TreeNode<T>* child : node->children) {
@@ -38,6 +38,7 @@ private:
     // Create a new node with the same data
     TreeNode<T>* newNode = new TreeNode<T>(node->data);
     newNode->level = node->level;
+    newNode->index = node->index;
     newNode->parent = parent;
 
     // Recursively copy the children
@@ -49,9 +50,11 @@ private:
     return newNode;
   }
 
-  void print(int x, int y, int ySpace, TreeNode<T>* node, std::vector<std::vector<int>> &array);
+  void print(int x, int y, int ySpace, TreeNode<T>* node, std::vector<std::vector<int>> &array, int type);
 
 public:
+  int nNodes = 0;
+
   void print();
 
   Tree() : root(nullptr) {}
@@ -77,9 +80,13 @@ public:
 
   void setRoot(TreeNode<T>* node) {
     root = node;
+    node->index = 0;
+    nNodes = 1;
   }
 
   void addChild(TreeNode<T>* parent, TreeNode<T>* child);
+
+  void addChild(TreeNode<T>* parent, int nChildren);
 
   void getNodes(TreeNode<T>* node, std::vector<TreeNode<T>*> &allNodes) const {
     if(node != nullptr) {
@@ -105,6 +112,16 @@ public:
       }
     }
     return levelNodes;
+  }
+
+  int depth() const {
+    int output = 0;
+    std::vector<TreeNode<T>*> level = getLevel(0);
+    while(level.size() > 0) {
+      output++;
+      level = getLevel(output);
+    }
+    return output;
   }
 
   /*void preorderTraversal(TreeNode<T>* node) {

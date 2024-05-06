@@ -454,14 +454,19 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, st
   while(level.size() > 0) {
     std::vector<Cluster> currCluster;
     for(TreeNode<Cluster>* cluster : level) {
-      currCluster.push_back(cluster->data);
+      if(cluster->children.size() != 0)
+        currCluster.push_back(cluster->data);
     }
     std::vector<std::vector<std::vector<double>>> currxPar;
     for(int j = 0; j < currCluster.size(); j++) {
-      currxPar.push_back(xPar[clusterCounter]);
-      clusterCounter++;
+      if(currCluster[j].unresolved > 0) {
+        currxPar.push_back(xPar[clusterCounter]);
+        clusterCounter++;
+      }
     }
-    pp_new = GenMomenta(pp_new, currCluster, currxPar);
+
+    if(currCluster.size() != 0)
+      pp_new = GenMomenta(pp_new, currCluster, currxPar);
     level_int++;
     level = clusterTree.getLevel(level_int);
   }
@@ -472,7 +477,10 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree) {
   std::vector<std::vector<std::vector<double>>> xPar;
   std::vector<TreeNode<Cluster>*> nodes = clusterTree.getNodes();
   std::vector<Cluster> cluster;
-  for(auto& node : nodes) cluster.push_back(node->data);
+  for(auto& node : nodes) {
+    if(node->children.size() > 0)
+      cluster.push_back(node->data);
+  }
   for(int j = 0; j < cluster.size(); j++) {
     std::vector<std::vector<double>> xPar_Cluster;
     for(int a = 0; a < cluster[j].unresolved; a++) {
@@ -482,8 +490,151 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree) {
       xPar_unresolved[2] = rnd(0, 1);
       xPar_Cluster.push_back(xPar_unresolved);
     }
-    xPar.push_back(xPar_Cluster);
+    if(cluster[j].unresolved > 0)
+      xPar.push_back(xPar_Cluster);
   }
 
   return GenMomenta2(pp, clusterTree, xPar);
+}
+
+std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) {
+  // Based on the input "tree", this function generates all possible next levels with <=nUnresolved unresolved nodes.
+  std::vector<Tree<Cluster>> output;
+  if(nUnresolved <= 0) return output;
+  std::vector<TreeNode<Cluster>*> level = tree.getLevel(tree.depth() - 1);
+  std::vector<bool> isReference;
+  int nUnresolved_sofar = 0;
+  for(TreeNode<Cluster>* node : level) {
+    if(node->data.isReference)
+      isReference.push_back(true);
+    else {
+      isReference.push_back(false);
+    }
+  }
+  for(TreeNode<Cluster>* node : tree.getNodes()) {
+    if(node == tree.getRoot()) continue;
+    if(!node->data.isReference)
+      nUnresolved_sofar++;
+  }
+
+  // Every unresolved can split, ergo the max number of new nodes is 2*nUresolved
+  for(int i = 1; i <= 2*nUnresolved; i++) {
+    std::vector<std::vector<int>> partitions = getPartitions(i);
+    for(std::vector<int> partition : partitions) {
+      for(int dummy = partition.size(); dummy < level.size(); dummy++) partition.push_back(0);
+      std::vector<std::vector<int>> permutations = getPermutations(partition);
+      for(std::vector<int>& permutation : permutations) {
+        bool valid_splitting = true;
+        Tree<Cluster> treeCopy(tree);
+        for(int node_counter = 0; node_counter < level.size(); node_counter++) {
+          TreeNode<Cluster>* node = treeCopy.getLevel(tree.depth() - 1)[node_counter];
+          bool generate_unresolved = false;
+          if(isReference[node_counter] and (permutation[node_counter] > 0)) {
+            TreeNode<Cluster>* child_ref = new TreeNode<Cluster>(true);
+            treeCopy.addChild(node, child_ref);
+            generate_unresolved = true;
+          }
+          // Remove trees where a reference has never any splitting
+          if(isReference[node_counter] and (node->parent == treeCopy.getRoot()) and (permutation[node_counter] == 0)) {
+            valid_splitting = false;
+            break;
+          }
+          // Remove trees where an unresolved does not split
+          if(!isReference[node_counter] and (permutation[node_counter] == 1)) {
+            valid_splitting = false;
+            break;
+          }
+          for(int n = 0; n < permutation[node_counter]; n++) {
+            if(!generate_unresolved) {
+              TreeNode<Cluster>* child_ref = new TreeNode<Cluster>(true);
+              treeCopy.addChild(node, child_ref);
+              generate_unresolved = true;
+            }
+            else {
+              TreeNode<Cluster>* child = new TreeNode<Cluster>(false);
+              treeCopy.addChild(node, child);
+            }
+          }
+        }
+        int nUnresolved_new = 0;
+        for(TreeNode<Cluster>* node : treeCopy.getNodes()) {
+          if(node != treeCopy.getRoot()) {
+            if(!node->data.isReference) nUnresolved_new++;
+          }
+        }
+        // Remove trees with two many unresolved nodes
+        if(nUnresolved_new - nUnresolved_sofar > nUnresolved) valid_splitting = false;
+        if(valid_splitting) {
+          output.push_back(treeCopy);
+        }
+      }
+    }
+  }
+  return output;
+}
+
+void GenTrees(Tree<Cluster>& input, int nUnresolved, std::vector<Tree<Cluster>>& output) {
+  // Takes an input tree and adds nUresolved particles in possible combinations to the tree. The new trees are stored to the output vector
+  if(nUnresolved <= 0) {
+    output.push_back(input);
+    return;
+  }
+  int nUnresolved_sofar = 0;
+  for(TreeNode<Cluster>* node : input.getNodes()) {
+    if((!(node->data.isReference)) and (node != input.getRoot())) nUnresolved_sofar++;
+  }
+  std::vector<Tree<Cluster>> next_level(GenTrees(input, nUnresolved));
+  for(Tree<Cluster> tree : next_level) {
+    int nUnresolved_next = 0;
+    std::vector<TreeNode<Cluster>*> nodes = tree.getNodes();
+    for(TreeNode<Cluster>* node : nodes) {
+      if((!(node->data.isReference)) and (node != tree.getRoot())) nUnresolved_next++;
+    }
+    // Recursively call the function. In this call we generated (nUnresolved_next - nUnresolved_sofar) unresolved nodes,
+    // so in the next iteration we only need to generate nUnresolved - (nUnresolved_next - nUnresolved_sofar) unresolved nodes
+    GenTrees(tree, nUnresolved - (nUnresolved_next - nUnresolved_sofar), output);
+  }
+}
+
+std::vector<Tree<Cluster>> GenTrees(int nUnresolved) {
+  // This function generates all possible trees with nUnresolved unresolved nodes.
+  Tree<Cluster> baseTree;
+  TreeNode<Cluster>* root = new TreeNode<Cluster>(Cluster());
+  baseTree.setRoot(root);
+  //TreeNode<Cluster>* r1 = new TreeNode<Cluster>(Cluster(true));
+  //baseTree.addChild(root, r1);
+  std::vector<Tree<Cluster>> output;
+  for(int i = 0; i <= nUnresolved; i++) {
+    int nReference = 1;
+    if (i == 0) nReference = 2;
+    while(nReference <= nUnresolved - i) {
+      Tree<Cluster> treeCopy(baseTree);
+      bool did_something = false;
+      for(int rDummy = 1; rDummy <= nReference; rDummy++) {
+        TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
+        treeCopy.addChild(treeCopy.getRoot(), r);
+        did_something = true;
+      }
+      for(int uDummy = 1; uDummy <= i; uDummy++) {
+        TreeNode<Cluster>* u = new TreeNode<Cluster>(Cluster(false));
+        treeCopy.addChild(treeCopy.getRoot(), u);
+        did_something = true;
+      }
+      std::vector<Tree<Cluster>> trees;
+      if(did_something) {
+        GenTrees(treeCopy, nUnresolved - i, trees);
+        output.insert(output.end(), trees.begin(), trees.end());
+      }
+      nReference++;
+    }
+  }
+  Tree<Cluster> treeCopy(baseTree);
+  TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
+  treeCopy.addChild(treeCopy.getRoot(), r);
+  for(int dummy = 0; dummy < nUnresolved; dummy++) {
+    TreeNode<Cluster>* u = new TreeNode<Cluster>(Cluster(false));
+    treeCopy.addChild(treeCopy.getRoot(), u);
+  }
+  output.push_back(treeCopy);
+  return output;
 }

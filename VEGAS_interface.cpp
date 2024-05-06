@@ -80,7 +80,10 @@ int integrand_full2(const int *ndim, const cubareal x[], const int *ncomp, cubar
   std::vector<std::vector<std::vector<double>>> xPar_rest;
   std::vector<TreeNode<Cluster>*> nodes = data->clusterTree->getNodes();
   std::vector<Cluster> cluster;
-  for(auto& node : nodes) cluster.push_back(node->data);
+  for(auto& node : nodes) {
+    if(node->children.size() > 0)
+      cluster.push_back(node->data);
+  }
   for(int j = 0; j < cluster.size(); j++) {
     std::vector<std::vector<double>> xPar_cluster;
     for(int a = 0; a < cluster[j].unresolved; a++) {
@@ -91,7 +94,8 @@ int integrand_full2(const int *ndim, const cubareal x[], const int *ncomp, cubar
       counter += 3;
       xPar_cluster.push_back(xPar_unresolved);
     }
-    xPar_rest.push_back(xPar_cluster);
+    if(cluster[j].unresolved > 0)
+      xPar_rest.push_back(xPar_cluster);
   }
   PhaseSpace pp_full = GenMomenta2(pp, *(data->clusterTree), xPar_rest);
   f[0] = pp_full.weight;

@@ -7,8 +7,13 @@ int main() {
   int nUnresolved = 1;
   int reference_index = 3;
   TreeNode<Cluster>* rootc = new TreeNode<Cluster>(Cluster(reference_index, 1));
+  TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(reference_index, 0));
+  TreeNode<Cluster>* u = new TreeNode<Cluster>(Cluster(reference_index+1, 0));
+
   Tree<Cluster> clusterTree;
   clusterTree.setRoot(rootc);
+  clusterTree.addChild(rootc, r);
+  clusterTree.addChild(rootc, u);
 
   // Test Phase space generation
   std::cout << "\033[1;37m--Test Phase space generation...\033[0m\n" << std::endl;

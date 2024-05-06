@@ -30,8 +30,15 @@ int main() {
   // One reference momentum, Two unresolved momenta
   std::cout << "\033[1;37m--One reference momentum, Two unresolved momenta:\033[0m\n" << std::endl;
   TreeNode<Cluster>* rootc = new TreeNode<Cluster>(Cluster(reference_index, 2));
+  TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(reference_index, 0));
+  TreeNode<Cluster>* u1 = new TreeNode<Cluster>(Cluster(reference_index+1, 0));
+  TreeNode<Cluster>* u2 = new TreeNode<Cluster>(Cluster(reference_index+2, 0));
+
   Tree<Cluster> clusterTree;
   clusterTree.setRoot(rootc);
+  clusterTree.addChild(rootc, r);
+  clusterTree.addChild(rootc, u1);
+  clusterTree.addChild(rootc, u2);
   clusterTree.print();
 
   // Test Phase space generation
@@ -216,9 +223,19 @@ int main() {
   TreeNode<Cluster>* rootc = new TreeNode<Cluster>(Cluster(2, 0));
   TreeNode<Cluster>* node1c = new TreeNode<Cluster>(Cluster(reference_index1, 1));
   TreeNode<Cluster>* node2c = new TreeNode<Cluster>(Cluster(reference_index2, 1));
+  TreeNode<Cluster>* r1 = new TreeNode<Cluster>(Cluster(reference_index1, 0));
+  TreeNode<Cluster>* u1 = new TreeNode<Cluster>(Cluster(reference_index1+1, 0));
+  TreeNode<Cluster>* r2 = new TreeNode<Cluster>(Cluster(reference_index2, 0));
+  TreeNode<Cluster>* u2 = new TreeNode<Cluster>(Cluster(reference_index2+1, 0));
+
   clusterTree2.setRoot(rootc);
   clusterTree2.addChild(rootc, node1c);
   clusterTree2.addChild(rootc, node2c);
+  clusterTree2.addChild(node1c, r1);
+  clusterTree2.addChild(node2c, r2);
+  clusterTree2.addChild(node1c, u1);
+  clusterTree2.addChild(node2c, u2);
+
   Tree<Cluster> clusterTree(clusterTree2);
   clusterTree.print();
 
@@ -226,6 +243,7 @@ int main() {
   std::cout << "\033[1;37m--Test Phase space generation...\033[0m\n" << std::endl;
   PhaseSpace pp = Splitting(nBorn, COM);
   PhaseSpace pp_test = GenMomenta2(pp, clusterTree);
+  pp_test.print();
 
   {
   bool fail = false;
@@ -297,8 +315,6 @@ int main() {
   while (scale > 1.e-5) {
     scale *= increment;
     std::vector<std::vector<std::vector<double>>> xParFull;
-    std::vector<std::vector<double>> empty_vector;
-    xParFull.push_back(empty_vector);
     for(int c = 0; c < 1; c++) {
       double eta1 = scale;
       double xi1 = 0.5;
