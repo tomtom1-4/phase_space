@@ -14,8 +14,5 @@ std::vector<std::vector<int>> getPermutations(const std::vector<int>& vec);
 
 void removeDuplicates(std::vector<std::vector<int>>& vecOfVecs);
 
-std::vector<std::vector<int>> getPermutations(const std::vector<int>& vec, const std::vector<bool>& flavor);
-
-
 
 #endif

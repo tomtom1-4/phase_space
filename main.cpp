@@ -12,30 +12,33 @@ int main() {
   int nBorn = 3;
   int nUnresolved = 0;
 
-  std::vector<Tree<Cluster>> tree_next = GenTrees(3);
-  for(Tree<Cluster> tree : tree_next) {
+  /*Tree<Cluster> tree;
+  TreeNode<Cluster>* root = new TreeNode<Cluster>(Cluster());
+  tree.setRoot(root);
+  TreeNode<Cluster>* r1 = new TreeNode<Cluster>(Cluster(true));
+  TreeNode<Cluster>* r2 = new TreeNode<Cluster>(Cluster(true));
+  tree.addChild(root, r1);
+  tree.addChild(root, r2);
+  std::vector<Tree<Cluster>> tree_new = GenTrees(tree, 3);
+  for(Tree<Cluster> t : tree_new) {
+    t.print();
+  }
+
+  return 0;*/
+
+  std::vector<Tree<Cluster>> tree_next = GenTrees(2);
+
+  for(int i = 0; i < tree_next.size(); i++) {
+    Tree<Cluster> tree = tree_next[i];
     std::cout << "\n\n" << std::endl;
+    std::cout << i << ":" << std::endl;
     for(int i = 0; i < 100; i++) std::cout << "#";
     std::cout << "\n\n" << std::endl;
     tree.print();
+
   }
 
   return 0;
-
-  std::vector<int> vec = {1, 1, 3}; // Example input vector
-  std::vector<bool> flavor = {1, 1, 0};
-  // Get all permutations of `vec`
-  auto permutations = getPermutations(vec, flavor);
-
-  // Output the permutations
-  std::cout << "Permutations:\n";
-  for (const auto& permutation : permutations) {
-    std::cout << "[ ";
-    for (int val : permutation) {
-      std::cout << val << " ";
-    }
-    std::cout << "]\n";
-  }
 
   int sample_size = 1000000;
   //cubareal x[3*nBorn - 4];

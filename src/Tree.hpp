@@ -70,6 +70,32 @@ public:
     }
   }
 
+  // Move constructor
+  Tree(Tree&& other) noexcept {
+    root = other.root; // Steal the root pointer
+    nNodes = other.nNodes;
+    other.root = nullptr; // Set the source object's root to nullptr
+  }
+
+  // Move assignment operator
+  Tree& operator=(Tree&& other) noexcept {
+    if (this != &other) { // Prevent self-assignment
+      destroyTree(root); // Clean up current resources
+      root = other.root; // Steal the source object's root
+      other.root = nullptr; // Clear the source object's root
+    }
+    return *this;
+  }
+
+  // Copy assignment operator
+  Tree& operator=(const Tree& original) {
+    if (this != &original) {
+      destroyTree(root); // Clean up current resources
+      root = copyNode(original.root); // Deep copy the original tree
+    }
+    return *this;
+  }
+
   ~Tree() {
     destroyTree(root);
   }
@@ -123,39 +149,6 @@ public:
     }
     return output;
   }
-
-  /*void preorderTraversal(TreeNode<T>* node) {
-    if (node != nullptr) {
-      if(node->parent != nullptr) {
-        if((node->parent->children.size() > 1) and (node == node->parent->children[0])) std::cout << "{";
-      }
-      else {
-        std::cout << "{";
-      }
-      std::cout << node->data;
-      if(node->children.size() != 0) std::cout << ",";
-      for (TreeNode<T>* child : node->children) {
-        preorderTraversal(child);
-      }
-      if(node->parent != nullptr) {
-        if((node->parent->children.size() > 1) and (node == node->parent->children.back())) std::cout << "}";
-      }
-      else {
-        std::cout << "}";
-      }
-      if(node->parent != nullptr) {
-        if(node != node->parent->children.back()) std::cout << ",";
-      }
-    }
-  }
-
-
-  void preorderTraversal() {
-    preorderTraversal(root);
-  }*/
 };
-
-//template <typename T>
-//Tree<T> generate_Tree(int nReference, int nUnresolved);
 
 #endif

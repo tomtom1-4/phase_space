@@ -502,6 +502,7 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
   std::vector<Tree<Cluster>> output;
   if(nUnresolved <= 0) return output;
   std::vector<TreeNode<Cluster>*> level = tree.getLevel(tree.depth() - 1);
+  // Find out wich of the last nodes are reference
   std::vector<bool> isReference;
   int nUnresolved_sofar = 0;
   for(TreeNode<Cluster>* node : level) {
@@ -519,9 +520,13 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
 
   // Every unresolved can split, ergo the max number of new nodes is 2*nUresolved
   for(int i = 1; i <= 2*nUnresolved; i++) {
+    // A patition of i corresponds to the way we distribute the i unresolved nodes among the existing nodes
     std::vector<std::vector<int>> partitions = getPartitions(i);
     for(std::vector<int> partition : partitions) {
+      if(partition.size() > level.size()) continue; // Skip partitions with more nodes than existing in the level
+      // Fill remaining spots with zero
       for(int dummy = partition.size(); dummy < level.size(); dummy++) partition.push_back(0);
+      // The partition can appear in all possible permutations
       std::vector<std::vector<int>> permutations = getPermutations(partition);
       for(std::vector<int>& permutation : permutations) {
         bool valid_splitting = true;
@@ -529,6 +534,7 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
         for(int node_counter = 0; node_counter < level.size(); node_counter++) {
           TreeNode<Cluster>* node = treeCopy.getLevel(tree.depth() - 1)[node_counter];
           bool generate_unresolved = false;
+          // If a reference node splits, we need a new reference node in the next level
           if(isReference[node_counter] and (permutation[node_counter] > 0)) {
             TreeNode<Cluster>* child_ref = new TreeNode<Cluster>(true);
             treeCopy.addChild(node, child_ref);
@@ -544,6 +550,7 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
             valid_splitting = false;
             break;
           }
+          // Generate unresolved nodes in the next level
           for(int n = 0; n < permutation[node_counter]; n++) {
             if(!generate_unresolved) {
               TreeNode<Cluster>* child_ref = new TreeNode<Cluster>(true);
@@ -596,6 +603,8 @@ void GenTrees(Tree<Cluster>& input, int nUnresolved, std::vector<Tree<Cluster>>&
   }
 }
 
+void removeRedundentTrees(std::vector<Tree<Cluster>>& trees);
+
 std::vector<Tree<Cluster>> GenTrees(int nUnresolved) {
   // This function generates all possible trees with nUnresolved unresolved nodes.
   Tree<Cluster> baseTree;
@@ -636,5 +645,115 @@ std::vector<Tree<Cluster>> GenTrees(int nUnresolved) {
     treeCopy.addChild(treeCopy.getRoot(), u);
   }
   output.push_back(treeCopy);
+  removeRedundentTrees(output);
   return output;
+}
+
+void compareNodes(TreeNode<Cluster>* node1, TreeNode<Cluster>* node2, bool& status) {
+  if(!status) return;
+  if(node1 == nullptr and node2 == nullptr) return;
+  if(node1->children.size() != node2->children.size()) {
+    status = false;
+    return;
+  }
+  else {
+    for(int i = 0; i < node1->children.size(); i++) {
+      compareNodes(node1->children[i], node2->children[i], status);
+    }
+  }
+}
+
+bool compareTrees(const Tree<Cluster>& tree1, const Tree<Cluster>& tree2) {
+  TreeNode<Cluster>* root1 = tree1.getRoot();
+  TreeNode<Cluster>* root2 = tree2.getRoot();
+  bool output = true;
+  if(root1->children.size() != root2->children.size()) return false;
+  else {
+    for(int i = 0; i < root1->children.size(); i++) {
+      if(root1->children[i]->data.isReference != root2->children[i]->data.isReference) return false;
+    }
+    // If we get here, than the first level must be equal. Now check the remaining levels
+    for(int i = 0; i < root1->children.size(); i++) {
+      compareNodes(root1->children[i], root2->children[i], output);
+    }
+  }
+  return output;
+}
+
+void genPermutations(const Tree<Cluster>& tree, TreeNode<Cluster>* input, std::vector<Tree<Cluster>>& output) {
+  // Takes a tree and a node inside that tree, and then generates all possible permutations of the children of the input node.
+  // The resulting trees are stored in the output vector
+  if(input->children.size() == 0) {
+    output.push_back(tree);
+    return;
+  }
+  std::vector<TreeNode<Cluster>*> nodes = tree.getNodes();
+  int input_index = -1;
+  for(int i = 0; i < nodes.size(); i++) {
+    if(nodes[i] == input) input_index = i;
+  }
+  std::vector<int> range;
+  for(int i = 0; i < input->children.size(); i++) range.push_back(i);
+  std::vector<std::vector<int>> permutations = getPermutations(range);
+  for(std::vector<int>& permutation : permutations) {
+    Tree<Cluster> treeCopy(tree);
+    TreeNode<Cluster>* inputCopy = treeCopy.getNodes()[input_index];
+    std::vector<TreeNode<Cluster>*> nodes_new = inputCopy->children;
+    for(int j = 0; j < permutation.size(); j++) {
+      inputCopy->children[j] = nodes_new[permutation[j]];
+    }
+    for(TreeNode<Cluster>* child : inputCopy->children) {
+      genPermutations(treeCopy, child, output);
+    }
+  }
+}
+
+std::vector<Tree<Cluster>> genPermutations(const Tree<Cluster>& tree) {
+  std::vector<Tree<Cluster>> output;
+  genPermutations(tree, tree.getRoot(), output);
+  int counter = 1;
+  int i = 0;
+  while(i < output.size() - 1) {
+    int j = i + 1;
+    while(j < output.size()) {
+      Tree<Cluster> original = output[i];
+      Tree<Cluster> permutation = output[j];
+      if(compareTrees(original, permutation)) {
+        output.erase(output.begin() + j);
+      }
+      else {
+        j++;
+      }
+    }
+    i++;
+  }
+  return output;
+}
+
+void removeRedundentTrees(std::vector<Tree<Cluster>>& trees) {
+  int i = 0;
+  while(i < trees.size()) {
+    Tree<Cluster> tree_i = trees[i];
+    std::vector<Tree<Cluster>> permutations = genPermutations(tree_i);
+    // Loop through remaining trees and check if one of the trees can be generated through a permutation
+    int j = i + 1;
+    while(j < trees.size()) {
+      Tree<Cluster> tree_j = trees[j];
+      // Check if tree_j is in permutations
+      bool isPermutation = false;
+      for(int k = 1; k < permutations.size(); k++) {
+        if(compareTrees(tree_j, permutations[k])) {
+          isPermutation = true;
+          break;
+        }
+      }
+      if(isPermutation) {
+        trees.erase(trees.begin() + j);
+      }
+      else {
+        j++;
+      }
+    }
+    i++;
+  }
 }

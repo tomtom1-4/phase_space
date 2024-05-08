@@ -67,38 +67,6 @@ std::vector<std::vector<int>> getPermutations(const std::vector<int>& vec) {
   return result;
 }
 
-// Recursive function to generate permutations
-void generatePermutations(std::vector<int>& arr, int start, const std::vector<bool>& flavor, std::vector<std::vector<int>>& result) {
-  // Base case: If we've reached the end of the array, add the permutation to the result
-  if (start == arr.size()) {
-    result.push_back(arr);
-    return;
-  }
-
-  // Iterate over the elements and swap them to generate permutations
-  for (int i = start; i < arr.size(); ++i) {
-    if(flavor[start] != flavor[i]) {
-      std::swap(arr[start], arr[i]);
-      generatePermutations(arr, start + 1, flavor, result); // Recurse with the next start
-      std::swap(arr[start], arr[i]); // Backtrack to restore original state
-    }
-    else{
-      result.push_back(arr);
-    }
-  }
-}
-
-// Function to get all permutations of a given vector
-std::vector<std::vector<int>> getPermutations(const std::vector<int>& vec, const std::vector<bool>& flavor) {
-  std::vector<std::vector<int>> result;
-  std::vector<int> arr = vec;
-
-  // Start permutation generation from the first index
-  generatePermutations(arr, 0, flavor, result);
-  removeDuplicates(result);
-  return result;
-}
-
 
 // A custom comparator for a set of vectors
 struct VectorCompare {

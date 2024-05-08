@@ -128,4 +128,10 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree);
 
 std::vector<Tree<Cluster>> GenTrees(int nUnresolved);
 
+std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved);
+
+bool compareTrees(const Tree<Cluster>& tree1, const Tree<Cluster>& tree2);
+
+std::vector<Tree<Cluster>> genPermutations(const Tree<Cluster>& tree);
+
 #endif

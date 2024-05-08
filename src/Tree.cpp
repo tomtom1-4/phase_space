@@ -69,36 +69,6 @@ void Tree<T>::print() {
   }
 }
 
-/*template <typename T>
-TreeNode<T> generate_TreeNode(TreeNode<T>& parent=nullptr, int nChildren) {
-  if(nChildren == 2) {
-    TreeNode<T>* child1 = new TreeNode<T>(T());
-    TreeNode<T>* child2 = new TreeNode<T>(T());
-    child1->parent = parent;
-    child2->parent = parent;
-    parent.children.push_back(child1);
-    parent.children.push_back(child2);
-    return parent;
-  }
-
-  for(int i = 2; i <= nChildren; i++) {
-    return generate_TreeNode(parent, i);
-  }
-}
-
-template <typename T>
-std::vector<Tree<T>> generate_Tree(int nReference, int nUnresolved) {
-  std::vector<Tree<T>> output;
-
-  Tree<T> tree;
-  TreeNode<T>* rootc = new TreeNode<T>(T());
-  tree.setRoot(rootc);
-  for(int i = 0; i < nReference; i++) {
-    TreeNode<T>* referenceNode = new TreeNode<T>(T());
-    tree.addChild(rootc, referenceNode);
-  }
-  for(int i = 0)
-}*/
 template <>
 void Tree<Cluster>::print(int x, int y, int ySpace, TreeNode<Cluster>* node, std::vector<std::vector<int>> &array, int type) {
   if(node == nullptr) return;
