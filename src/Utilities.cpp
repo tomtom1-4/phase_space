@@ -90,3 +90,43 @@ void removeDuplicates(std::vector<std::vector<int>>& vecOfVecs) {
   vecOfVecs.clear();
   vecOfVecs.assign(uniqueVectors.begin(), uniqueVectors.end());
 }
+
+// Function to recursively generate subsets
+void generateSubsetsHelper(const std::vector<int>& original, std::vector<int>& currentSubset, std::vector<std::vector<int>>& subsets, int start, int n) {
+  // If the current subset has reached the desired length, add it to the subsets list
+  if (currentSubset.size() == n) {
+    subsets.push_back(currentSubset);
+    return;
+  }
+
+  // Iterate through the remaining elements and recursively generate subsets
+  for (int i = start; i < original.size(); ++i) {
+    // Add the current element to the subset
+    currentSubset.push_back(original[i]);
+
+    // Recursively generate the rest of the subset
+    generateSubsetsHelper(original, currentSubset, subsets, i + 1, n);
+
+    // Backtrack: remove the last element to explore other subsets
+    currentSubset.pop_back();
+  }
+}
+
+// Wrapper function to generate subsets of length n
+std::vector<std::vector<int>> generateSubsets(const std::vector<int>& original, int n) {
+  std::vector<std::vector<int>> subsets;
+  std::vector<int> currentSubset;
+
+  if (n > original.size() || n < 0) {
+    return subsets; // Invalid case
+  }
+
+  // Sort original vector (optional, but often desirable)
+  std::vector<int> sortedOriginal = original;
+  sort(sortedOriginal.begin(), sortedOriginal.end());
+
+  // Start the recursive process
+  generateSubsetsHelper(sortedOriginal, currentSubset, subsets, 0, n);
+
+  return subsets;
+}

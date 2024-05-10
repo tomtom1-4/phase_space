@@ -79,16 +79,22 @@ void Tree<Cluster>::print(int x, int y, int ySpace, TreeNode<Cluster>* node, std
     return;
   }
   else {
-    for(int y_counter = y - ySpace/2; y_counter < y + (ySpace/2); y_counter++) {
-      array[x+1][y_counter] = 2;
+    if(node->children.size() == 1) {
+      print(x + 2, y, ySpace, node->children[0], array, 3);
     }
-    for(int i = 0; i < node->children.size(); i++) {
-      int new_ySpace = ySpace/node->children.size();
-      //if(i < node->data.unresolved)
-      if(!node->children[i]->data.isReference)
-        print(x + 2, y + ySpace/2 - i*ySpace/(node->children.size() - 1), new_ySpace, node->children[i], array, 1);
-      else
-        print(x + 2, y + ySpace/2 - i*ySpace/(node->children.size() - 1), new_ySpace, node->children[i], array, 3);
+    else {
+      for(int y_counter = y - ySpace/2; y_counter < y + (ySpace/2); y_counter++) {
+        array[x+1][y_counter] = 2;
+      }
+
+      for(int i = 0; i < node->children.size(); i++) {
+        int new_ySpace = ySpace/node->children.size();
+        //if(i < node->data.unresolved)
+        if(!node->children[i]->data.isReference)
+          print(x + 2, y + ySpace/2 - i*ySpace/(node->children.size() - 1), new_ySpace, node->children[i], array, 1);
+        else
+          print(x + 2, y + ySpace/2 - i*ySpace/(node->children.size() - 1), new_ySpace, node->children[i], array, 3);
+      }
     }
   }
 }
@@ -98,7 +104,7 @@ void Tree<Cluster>::print() {
   int size = 100;
   std::vector<std::vector<int>> array(50, std::vector<int>(size, 0));
   if(root == nullptr) return;
-  print(0, size/2, size/2, root, array, 1);
+  print(0, size/2, size/2, root, array, 4);
 
   for(int x = 0; x < array.size(); x++) {
     bool empty = true;
@@ -120,6 +126,9 @@ void Tree<Cluster>::print() {
           break;
         case 3:
           std::cout << "#"; // Reference
+          break;
+        case 4:
+          std::cout << "O"; // Root
         default:
           break;
         }

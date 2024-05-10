@@ -3,23 +3,26 @@
 int main() {
   srand(12);
   double COM = 1000.;
-  int nBorn = 2;
-  int nUnresolved = 1;
-  int reference_index = 3;
-  TreeNode<Cluster>* rootc = new TreeNode<Cluster>(Cluster(reference_index, 1));
-  TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(reference_index, 0));
-  TreeNode<Cluster>* u = new TreeNode<Cluster>(Cluster(reference_index+1, 0));
+  int nBorn = 3;
+  int nUnresolved = 2;
+  int reference_index = 2;
+  std::vector<int> flavor = {0, 0};
+  for(int i = 0 ; i < nBorn; i++) flavor.push_back(1);
 
-  Tree<Cluster> clusterTree;
-  clusterTree.setRoot(rootc);
-  clusterTree.addChild(rootc, r);
-  clusterTree.addChild(rootc, u);
+  std::vector<Tree<Cluster>> trees = GenTrees(nUnresolved);
+  for(int tree_counter = 2; tree_counter < trees.size(); tree_counter++) {
+  Tree<Cluster>& tree = trees[tree_counter];
+  std::vector<Tree<Cluster>> sectors = GenSectors(flavor, tree, nBorn + 2);
+  for(int sec_counter = 1; sec_counter < sectors.size(); sec_counter++) {
+  Tree<Cluster> clusterTree = sectors[sec_counter];
 
   // Test Phase space generation
   std::cout << "\033[1;37m--Test Phase space generation...\033[0m\n" << std::endl;
   PhaseSpace pp = Splitting(nBorn, COM);
   PhaseSpace pp_test = GenMomenta2(pp, clusterTree);
+  pp_test.print();
   clusterTree.print();
+
   {
   bool fail = false;
   double acc = 1.e-6;
@@ -34,8 +37,10 @@ int main() {
       fail = true;
     }
   }
-  std::cout << "\tMomentum is conserved p = ";
-  check.print();
+  if(!fail) {
+    std::cout << "\tMomentum is conserved p = ";
+    check.print();
+  }
 
   for(int i = 0; i < pp_test.momenta.size(); i++) {
     std::cout << "\tp[" << i << "]^2 = " << pp_test.momenta[i].inv_mass2() << std::endl;
@@ -78,55 +83,116 @@ int main() {
   // Test Infrared limits
   std::cout << "\033[1;37m--Test infrared limits...\033[0m\n" << std::endl;
   std::cout << "\tLimiting variable eta:" << std::endl;
-  std::cout << std::setw(17) << "eta" << std::setw(17) << "eta (real)" << std::setw(17) << "Expectation (1)" << std::endl;
-  double previous = 0.;
-  //pp.print();
+  for(int i = 0; i < nUnresolved; i++) {
+    std::cout << std::setw(16) << "eta" << i << std::setw(9) << "eta" << i <<" (real)" << std::setw(17) << "Error" << " | ";
+  }
+  std::cout << std::endl;
+
   double scale = 1;
   double increment = 0.1;
   bool fail_eta = false;
   while (scale > 1.e-8) {
     scale *= increment;
     std::vector<std::vector<std::vector<double>>> xParFull;
-    for(int c = 0; c < nUnresolved; c++) {
-      double eta = scale;
-      double xi = 0.5;
-      double phi = rnd(0., 1.);
-      std::vector<std::vector<double>> xPar = {{eta, xi, phi}};
-      xParFull.push_back(xPar);
+    int level_int = 1;
+    std::vector<TreeNode<Cluster>*> level = clusterTree.getLevel(level_int);
+    while(level.size() > 0) {
+      int unresolved_level = 0;
+      for(TreeNode<Cluster>* node : level){
+        unresolved_level += node->data.unresolved;
+
+        std::vector<std::vector<double>> xPar;
+        for(int c = 0; c < node->data.unresolved; c++) {
+          double eta = std::pow(scale, level_int);
+          double xi = 0.5;
+          double phi = rnd(0., 1.);
+          std::vector<double> xPar_c = {eta, xi, phi};
+          xPar.push_back(xPar_c);
+        }
+        xParFull.push_back(xPar);
+      }
+      level_int++;
+      level = clusterTree.getLevel(level_int);
     }
     PhaseSpace ppFull = GenMomenta2(pp, clusterTree, xParFull);
-    std::cout << std::setw(17) << scale << std::setw(17) << std::setprecision(8) << ppFull.momenta[reference_index]*ppFull.momenta[reference_index+1]/(ppFull.momenta[reference_index].components[0]*ppFull.momenta[reference_index+1].components[0])/2.
-                                               << std::setw(17) << std::setprecision(8) << ppFull.momenta[reference_index]*ppFull.momenta[reference_index+1]/(ppFull.momenta[reference_index].components[0]*ppFull.momenta[reference_index+1].components[0])/2./previous/increment << std::endl;
-    previous = ppFull.momenta[reference_index]*ppFull.momenta[reference_index+1]/(ppFull.momenta[reference_index].components[0]*ppFull.momenta[reference_index+1].components[0])/2.;
-    if(std::abs(scale - previous)/scale > 1.e-5){
-      fail_eta = true;
+    ppFull.print();
+    level_int = 1;
+    level = clusterTree.getLevel(level_int);
+    while(level.size() > 0) {
+      for(TreeNode<Cluster>* node : level){
+        Momentum r = node->data.reference_momentum;
+        std::cout << "r = "; r.print(); std::cout << std::endl;
+        for(Momentum u : node->data.unresolved_momenta) {
+          std::cout << "u = "; u.print(); std::cout << std::endl;
+          double ratio = r*u/(r.components[0]*u.components[0]*2.)/std::pow(scale, level_int);
+          std::cout << std::setw(17) << std::pow(scale, level_int) << std::setprecision(5)
+                    << std::setw(17) << r*u/(r.components[0]*u.components[0]*2.) << std::setw(17) << std::abs(1 - ratio) <<  " | ";
+          if(std::abs(ratio - 1) > 1.e-5) {
+            fail_eta = true;
+          }
+        }
+      }
+      level_int++;
+      level = clusterTree.getLevel(level_int);
     }
+    std::cout << std::endl;
   }
 
+
   std::cout << "\n\tLimiting variable xi:" << std::endl;
-  std::cout << std::setw(17) << "xi" << std::setw(17) << "xi (real)" << std::setw(17) << "Expectation (1)" << std::endl;
-  scale = 1.;
+  for(int i = 0; i < nUnresolved; i++) {
+    std::cout << std::setw(16) << "xi" << i << std::setw(9) << "xi" << i <<" (real)" << std::setw(17) << "Error" << " | ";
+  }
+  std::cout << std::endl;
+
+  scale = 1;
   bool fail_xi = false;
   while (scale > 1.e-8) {
     scale *= increment;
     std::vector<std::vector<std::vector<double>>> xParFull;
-    for(int c = 0; c < nUnresolved; c++) {
-      double eta = 0.5;
-      double xi = scale;
-      double phi = rnd(0., 1.);
-      std::vector<std::vector<double>> xPar = {{eta, xi, phi}};
-      xParFull.push_back(xPar);
+    int level_int = 1;
+    std::vector<TreeNode<Cluster>*> level = clusterTree.getLevel(level_int);
+    while(level.size() > 0) {
+      int unresolved_level = 0;
+      for(TreeNode<Cluster>* node : level){
+        unresolved_level += node->data.unresolved;
+
+        std::vector<std::vector<double>> xPar;
+        for(int c = 0; c < node->data.unresolved; c++) {
+          double xi = std::pow(scale, level_int);
+          double eta = 0.5;
+          double phi = rnd(0., 1.);
+          std::vector<double> xPar_c = {eta, xi, phi};
+          xPar.push_back(xPar_c);
+        }
+        xParFull.push_back(xPar);
+      }
+      level_int++;
+      level = clusterTree.getLevel(level_int);
     }
     PhaseSpace ppFull = GenMomenta2(pp, clusterTree, xParFull);
-    std::cout << std::setw(17) << scale << std::setw(17) << std::setprecision(8) << ppFull.momenta[reference_index+1].components[0]/(ppFull.momenta[reference_index].components[0])
-                                               << std::setw(17) << std::setprecision(8) << ppFull.momenta[reference_index+1].components[0]/(ppFull.momenta[reference_index].components[0])/previous/increment << std::endl;
-    previous = ppFull.momenta[reference_index+1].components[0]/(ppFull.momenta[reference_index].components[0]);
-    if(std::abs(scale - previous)/scale > 1.e-5){
-      fail_xi = true;
+
+    level_int = 1;
+    level = clusterTree.getLevel(level_int);
+    while(level.size() > 0) {
+      for(TreeNode<Cluster>* node : level){
+        Momentum r = node->data.reference_momentum;
+        for(Momentum u : node->data.unresolved_momenta) {
+          double ratio = u.components[0]/(r.components[0] + u.components[0])/std::pow(scale, level_int);
+          std::cout << std::setw(17) << std::pow(scale, level_int) << std::setprecision(5)
+                    << std::setw(17) << u.components[0]/r.components[0] << std::setw(17) << std::abs(1 - ratio) <<  " | ";
+          if(std::abs(ratio - 1) > 1.e-5) {
+            fail_xi = true;
+          }
+          else {
+            fail_xi = false;
+          }
+        }
+      }
+      level_int++;
+      level = clusterTree.getLevel(level_int);
     }
-    else {
-      fail_xi = false;
-    }
+    std::cout << std::endl;
   }
 
   if(!fail_xi and !fail_eta) {
@@ -136,4 +202,6 @@ int main() {
     std::cout << "\033[1;31m--Infrared limits test failed!\033[0m\n" << std::endl;
   }
 
+  }
+  }
 }

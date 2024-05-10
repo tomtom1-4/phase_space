@@ -1,6 +1,6 @@
 #include "PhaseSpace.hpp"
 
-void LorentzMatrix::print() {
+void LorentzMatrix::print() const {
   int precision = 6;
   std::cout << std::setprecision(precision);
   for(int i = 0; i < 4; i++) {
@@ -17,7 +17,7 @@ void LorentzMatrix::print() {
   }
 }
 
-void LorentzMatrix::print_list() {
+void LorentzMatrix::print_list() const {
   std::cout << "{";
   for(int i = 0; i < 4; i++) {
     std::cout << "{";
@@ -53,7 +53,7 @@ void PhaseSpace::check_onshellness(double acc) {
   }
 }
 
-void PhaseSpace::print() {
+void PhaseSpace::print() const {
   for(int i = 0; i < size(); i++) {
     std::cout << "p[" << i << "] = ";
     momenta[i].print();
@@ -336,9 +336,13 @@ PhaseSpace Splitting(int nMomenta, double COM) {
 PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster, std::vector<std::vector<std::vector<double>>> xPar) {
   PESCPhaseSpace pp_new;
   pp_new.cluster = cluster;
+  for(int j = 0; j < pp_new.cluster.size(); j++) {
+    pp_new.cluster[j].unresolved_momenta = std::vector<Momentum>(0);
+  }
   std::vector<double> x(pp_new.cluster.size(), 0.);
   int dim = 4;
   double jacobian = 1.;
+  int nUnresolved = 0;
   Momentum P = (-1.)*(pp.momenta[0] + pp.momenta[1]);
   Momentum rTot, rWeighted, uTot;
   for(int j = 0; j < pp_new.cluster.size(); j++) {
@@ -366,8 +370,10 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
       Momentum u = u0*uhat;
       jacobian *= u0*u0*2.*2.*M_PI*uMax /2./std::pow(2.*M_PI, 3)/u0;
       pp_new.cluster[j].unresolved_momenta.push_back(u);
+      nUnresolved++;
       uTot = uTot + u;
     }
+
     double xj = (-2.*P*rTot + rTot*rTot - uTot*uTot + 2.*P*uTot + 2.*P*rWeighted - rWeighted*rWeighted - 2.*rWeighted*uTot)/
         (-2.*P*r + 2.*r*rWeighted + 2.*r*uTot);
     x[j] = xj;
@@ -398,9 +404,9 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
 
   // determine Lorentz transformation yielding qFull from q
   LorentzMatrix Lambda = find_LT(qFull, q);
-
-  pp_new.momenta.push_back(pp.momenta[0]);
-  pp_new.momenta.push_back(pp.momenta[1]);
+  pp_new.momenta = pp.momenta;
+  pp_new.momenta[0] = pp.momenta[0];
+  pp_new.momenta[1] = pp.momenta[1];
 
   // Apply Lorentz transformation to all final states momenta that are not reference vectors
   std::vector<int> qi_indices;
@@ -415,10 +421,10 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
     }
     if(!reference) {
       Momentum pi_new = Lambda*pp.momenta[i];
-      pp_new.momenta.push_back(pi_new);
+      pp_new.momenta[i] = pi_new;
     }
     else {
-      pp_new.momenta.push_back(pp_new.cluster[cluster_index].reference_momentum);
+      pp_new.momenta[i] = pp_new.cluster[cluster_index].reference_momentum;
       for(auto& u:pp_new.cluster[cluster_index].unresolved_momenta) {
         pp_new.momenta.push_back(u);
       }
@@ -448,9 +454,11 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, st
   TreeNode<Cluster>* root = clusterTree.getRoot();
   PhaseSpace pp_new = pp;
   TreeNode<Cluster>* current = root;
-  int level_int = 0;
+  int level_int = 1;
   int clusterCounter = 0;
   std::vector<TreeNode<Cluster>*> level = clusterTree.getLevel(level_int);
+  int unresolved_counter = pp.size();
+  int last_unresolved_counter = unresolved_counter;
   while(level.size() > 0) {
     std::vector<Cluster> currCluster;
     for(TreeNode<Cluster>* cluster : level) {
@@ -465,8 +473,19 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, st
       }
     }
 
-    if(currCluster.size() != 0)
+    if(currCluster.size() != 0) {
       pp_new = GenMomenta(pp_new, currCluster, currxPar);
+    }
+    for(TreeNode<Cluster>* cluster : level) {
+      cluster->data.reference_momentum = pp_new.momenta[cluster->data.reference];
+      cluster->data.unresolved_momenta = std::vector<Momentum>(cluster->data.unresolved);
+      while(unresolved_counter < last_unresolved_counter + cluster->data.unresolved) {
+        cluster->data.unresolved_momenta[unresolved_counter - last_unresolved_counter] = pp_new.momenta[unresolved_counter];
+        unresolved_counter++;
+      }
+      last_unresolved_counter = unresolved_counter;
+    }
+
     level_int++;
     level = clusterTree.getLevel(level_int);
   }
@@ -580,7 +599,9 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
   return output;
 }
 
-void GenTrees(Tree<Cluster>& input, int nUnresolved, std::vector<Tree<Cluster>>& output) {
+std::vector<Tree<Cluster>> genPermutations(const Tree<Cluster>& tree);
+
+void GenTrees(const Tree<Cluster>& input, int nUnresolved, std::vector<Tree<Cluster>>& output) {
   // Takes an input tree and adds nUresolved particles in possible combinations to the tree. The new trees are stored to the output vector
   if(nUnresolved <= 0) {
     output.push_back(input);
@@ -613,39 +634,30 @@ std::vector<Tree<Cluster>> GenTrees(int nUnresolved) {
   //TreeNode<Cluster>* r1 = new TreeNode<Cluster>(Cluster(true));
   //baseTree.addChild(root, r1);
   std::vector<Tree<Cluster>> output;
-  for(int i = 0; i <= nUnresolved; i++) {
-    int nReference = 1;
-    if (i == 0) nReference = 2;
-    while(nReference <= nUnresolved - i) {
-      Tree<Cluster> treeCopy(baseTree);
-      bool did_something = false;
-      for(int rDummy = 1; rDummy <= nReference; rDummy++) {
-        TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
-        treeCopy.addChild(treeCopy.getRoot(), r);
-        did_something = true;
+  int nReference = 1;
+  for(int nReference = 1; nReference <= nUnresolved; nReference++) {
+    Tree<Cluster> treeCopy(baseTree);
+    for(int rDummy = 1; rDummy <= nReference; rDummy++) {
+      TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
+      treeCopy.addChild(treeCopy.getRoot(), r);
+    }
+    std::vector<Tree<Cluster>> trees;
+    GenTrees(treeCopy, nUnresolved, trees);
+    output.insert(output.end(), trees.begin(), trees.end());
+  }
+
+  removeRedundentTrees(output);
+  // Determine the number of unresolved partons in each cluster
+  for(Tree<Cluster>& tree : output) {
+    std::vector<TreeNode<Cluster>*> nodes = tree.getNodes();
+    for(TreeNode<Cluster>* node : nodes) {
+      int nUnresolved = 0;
+      for(TreeNode<Cluster>* child : node->children) {
+        if(!child->data.isReference) nUnresolved++;
       }
-      for(int uDummy = 1; uDummy <= i; uDummy++) {
-        TreeNode<Cluster>* u = new TreeNode<Cluster>(Cluster(false));
-        treeCopy.addChild(treeCopy.getRoot(), u);
-        did_something = true;
-      }
-      std::vector<Tree<Cluster>> trees;
-      if(did_something) {
-        GenTrees(treeCopy, nUnresolved - i, trees);
-        output.insert(output.end(), trees.begin(), trees.end());
-      }
-      nReference++;
+      node->data.unresolved = nUnresolved;
     }
   }
-  Tree<Cluster> treeCopy(baseTree);
-  TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
-  treeCopy.addChild(treeCopy.getRoot(), r);
-  for(int dummy = 0; dummy < nUnresolved; dummy++) {
-    TreeNode<Cluster>* u = new TreeNode<Cluster>(Cluster(false));
-    treeCopy.addChild(treeCopy.getRoot(), u);
-  }
-  output.push_back(treeCopy);
-  removeRedundentTrees(output);
   return output;
 }
 
@@ -667,10 +679,15 @@ bool compareTrees(const Tree<Cluster>& tree1, const Tree<Cluster>& tree2) {
   TreeNode<Cluster>* root1 = tree1.getRoot();
   TreeNode<Cluster>* root2 = tree2.getRoot();
   bool output = true;
-  if(root1->children.size() != root2->children.size()) return false;
+  if(root1->children.size() != root2->children.size()) {
+    return false;
+  }
   else {
     for(int i = 0; i < root1->children.size(); i++) {
-      if(root1->children[i]->data.isReference != root2->children[i]->data.isReference) return false;
+      if(root1->children[i]->data.isReference != root2->children[i]->data.isReference){
+        std::cout << root1->children[i]->data.isReference  << ", " << root2->children[i]->data.isReference << "\t" << root1->children.size() << std::endl;
+        return false;
+      }
     }
     // If we get here, than the first level must be equal. Now check the remaining levels
     for(int i = 0; i < root1->children.size(); i++) {
@@ -756,4 +773,59 @@ void removeRedundentTrees(std::vector<Tree<Cluster>>& trees) {
     }
     i++;
   }
+}
+
+void GenSectors(TreeNode<Cluster>* node, int reference, int& unresolved) {
+  // This function labels a single tree according to the indices provided in reference
+  if(node == nullptr) return;
+
+  if(node->data.isReference) {
+    node->data.reference = reference;
+    for(TreeNode<Cluster>* child : node->children) {
+      GenSectors(child, reference, unresolved);
+    }
+  }
+  else {
+    node->data.reference = unresolved;
+    for(TreeNode<Cluster>* child : node->children) {
+      unresolved++;
+      GenSectors(child, node->data.reference, unresolved);
+    }
+  }
+}
+
+std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluster>& tree, int nBorn) {
+  // This function takes a bare tree and assigns reference indices to the tree, so that it can be used for the generation of phase-space points
+  // flavor is a vector of parton flavor: 0 means no QCD interaction, 1 means QCD interaction
+  std::vector<Tree<Cluster>> output;
+  int nReference = 0;
+  for(TreeNode<Cluster>* child : tree.getRoot()->children){
+    if(child->data.isReference) nReference++;
+  }
+
+  std::vector<int> flavor_indices; // Contains the indices of the QCD interacting particles
+  for(int i = 0; i < flavor.size(); i++) {
+    if(flavor[i] == 0) {
+      continue;
+    }
+    else {
+      flavor_indices.push_back(i);
+    }
+  }
+  if(nReference > flavor_indices.size()) return output;
+
+  std::vector<std::vector<int>> distributions = generateSubsets(flavor_indices, nReference);
+  for(std::vector<int>& distribution : distributions) {
+    std::vector<std::vector<int>> permutations = getPermutations(distribution);
+    for(std::vector<int> permutation : permutations) {
+      Tree<Cluster> treeCopy(tree);
+      int unresolved_counter = nBorn;
+      for(int i = 0; i < treeCopy.getRoot()->children.size(); i++) {
+        GenSectors(treeCopy.getRoot()->children[i], permutation[i], unresolved_counter);
+      }
+      output.push_back(treeCopy);
+    }
+  }
+
+  return output;
 }

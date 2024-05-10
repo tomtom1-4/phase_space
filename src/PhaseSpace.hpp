@@ -15,8 +15,8 @@ class LorentzMatrix {
     std::vector<std::vector<double>> components = {{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}};
     LorentzMatrix(std::vector<std::vector<double>> components) : components(components){}
     LorentzMatrix(){};
-    void print();
-    void print_list();
+    void print() const;
+    void print_list() const;
 };
 
 class Momentum {
@@ -84,7 +84,7 @@ class PhaseSpace {
 
     void check_onshellness(double acc = 1.e-5);
 
-    void print();
+    void print() const;
 
     double weight;
 
@@ -128,10 +128,9 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree);
 
 std::vector<Tree<Cluster>> GenTrees(int nUnresolved);
 
-std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved);
+std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluster>& tree, int nBorn);
 
 bool compareTrees(const Tree<Cluster>& tree1, const Tree<Cluster>& tree2);
 
-std::vector<Tree<Cluster>> genPermutations(const Tree<Cluster>& tree);
 
 #endif

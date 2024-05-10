@@ -31,8 +31,8 @@ int main() {
   std::cout << "\033[1;37m--One reference momentum, Two unresolved momenta:\033[0m\n" << std::endl;
   TreeNode<Cluster>* rootc = new TreeNode<Cluster>(Cluster(reference_index, 2));
   TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(reference_index, 0));
-  TreeNode<Cluster>* u1 = new TreeNode<Cluster>(Cluster(reference_index+1, 0));
-  TreeNode<Cluster>* u2 = new TreeNode<Cluster>(Cluster(reference_index+2, 0));
+  TreeNode<Cluster>* u1 = new TreeNode<Cluster>(Cluster(reference_index, 0));
+  TreeNode<Cluster>* u2 = new TreeNode<Cluster>(Cluster(reference_index, 0));
 
   Tree<Cluster> clusterTree;
   clusterTree.setRoot(rootc);

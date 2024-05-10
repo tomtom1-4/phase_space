@@ -26,7 +26,9 @@ int main() {
 
   return 0;*/
 
-  std::vector<Tree<Cluster>> tree_next = GenTrees(2);
+  std::vector<Tree<Cluster>> tree_next = GenTrees(3);
+  std::vector<int> flavor = {0, 0, 1, 1, 1};
+
 
   for(int i = 0; i < tree_next.size(); i++) {
     Tree<Cluster> tree = tree_next[i];
@@ -35,7 +37,10 @@ int main() {
     for(int i = 0; i < 100; i++) std::cout << "#";
     std::cout << "\n\n" << std::endl;
     tree.print();
-
+    std::vector<Tree<Cluster>> sectors = GenSectors(flavor, tree, nBorn + 2);
+    for(Tree<Cluster>& sector : sectors) {
+      sector.print();
+    }
   }
 
   return 0;
