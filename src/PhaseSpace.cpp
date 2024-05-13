@@ -465,7 +465,7 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, st
   while(level.size() > 0) {
     std::vector<Cluster> currCluster;
     for(TreeNode<Cluster>* cluster : level) {
-      if(cluster->children.size() != 0)
+      if(cluster->children.size() > 1)
         currCluster.push_back(cluster->data);
     }
     std::vector<std::vector<std::vector<double>>> currxPar;
@@ -815,18 +815,53 @@ std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluste
       flavor_indices.push_back(i);
     }
   }
+  Tree<Cluster> treeCopy;
   if(nReference > flavor_indices.size()) return output;
-
+  else if(nReference == flavor_indices.size()) {
+    TreeNode<Cluster>* root = new TreeNode<Cluster>(Cluster());
+    treeCopy.setRoot(root);
+    for(int i = 0; i < nReference; i++) {
+      TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
+      r->data.unresolved = 0;
+      treeCopy.addChild(root, r);
+    }
+    for(int level_counter = 1; level_counter <= nReference; level_counter++) {
+      std::vector<TreeNode<Cluster>*> level = treeCopy.getLevel(level_counter);
+      TreeNode<Cluster>* u = new TreeNode<Cluster>(Cluster(false));
+      u->data.unresolved = 0;
+      if(level_counter == 1) {
+        level[0]->data.unresolved = 1;
+        treeCopy.addChild(level[0], u);
+      }
+      else {
+        level[2]->data.unresolved = 1;
+        treeCopy.addChild(level[2], u);
+      }
+      for(int i = level_counter==1?0:2; i < level.size(); i++) {
+        if(level[i]->data.isReference) {
+          TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
+          r->data.unresolved = 0;
+          treeCopy.addChild(level[i], r);
+        }
+      }
+    }
+  }
   std::vector<std::vector<int>> distributions = generateSubsets(flavor_indices, nReference);
   for(std::vector<int>& distribution : distributions) {
     std::vector<std::vector<int>> permutations = getPermutations(distribution);
     for(std::vector<int> permutation : permutations) {
-      Tree<Cluster> treeCopy(tree);
-      int unresolved_counter = nBorn;
-      for(int i = 0; i < treeCopy.getRoot()->children.size(); i++) {
-        GenSectors(treeCopy.getRoot()->children[i], permutation[i], unresolved_counter);
+      Tree<Cluster> treeCopyCopy;
+      if(nReference == flavor_indices.size()) {
+        treeCopyCopy = Tree<Cluster>(treeCopy);
       }
-      output.push_back(treeCopy);
+      else {
+        treeCopyCopy = Tree<Cluster>(tree);
+      }
+      int unresolved_counter = nBorn;
+      for(int i = 0; i < treeCopyCopy.getRoot()->children.size(); i++) {
+        GenSectors(treeCopyCopy.getRoot()->children[i], permutation[i], unresolved_counter);
+      }
+      output.push_back(treeCopyCopy);
     }
   }
 

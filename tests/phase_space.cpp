@@ -3,9 +3,8 @@
 int main() {
   srand(12);
   double COM = 1000.;
-  int nBorn = 4;
-  int nUnresolved = 3;
-  int reference_index = 2;
+  int nBorn = 2;
+  int nUnresolved = 2;
   std::vector<int> flavor = {0, 0};
   for(int i = 0 ; i < nBorn; i++) flavor.push_back(1);
 
@@ -185,7 +184,8 @@ int main() {
       for(int j = 0; j < level.size(); j++){
         TreeNode<Cluster>* node = level[j];
         Momentum r = node->data.reference_momentum;
-        rTot = rTot + r;
+        if(node->data.unresolved > 0)
+          rTot = rTot + r;
         for(int a = 0; a < node->data.unresolved; a++) {
           Momentum u = node->data.unresolved_momenta[a];
           Momentum urest;
