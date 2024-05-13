@@ -1,6 +1,6 @@
 LIBS = -lcuba -lm
 
-all: single_unresolved.exe double_unresolved.exe
+all: phase_space.exe
 
 %.exe : %.o ../src/PhaseSpace.o ../src/Utilities.o ../src/Tree.o ../VEGAS_interface.o
 		g++  -std=c++17 -O3 -o $@ $^ $(LIBS)

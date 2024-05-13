@@ -366,6 +366,7 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
 
       double uMax = (2.*P*rTot - rTot*rTot + urest*urest - 2.*P*urest - 2.*P*rWeighted + rWeighted*rWeighted + 2.*rWeighted*urest)/
           (2.*uhat*(P - rWeighted - urest));
+
       double u0 = uMax*xi;
       Momentum u = u0*uhat;
       jacobian *= u0*u0*2.*2.*M_PI*uMax /2./std::pow(2.*M_PI, 3)/u0;
@@ -425,9 +426,11 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
     }
     else {
       pp_new.momenta[i] = pp_new.cluster[cluster_index].reference_momentum;
-      for(auto& u:pp_new.cluster[cluster_index].unresolved_momenta) {
-        pp_new.momenta.push_back(u);
-      }
+    }
+  }
+  for(int i = 0; i < pp_new.cluster.size(); i++) {
+    for(Momentum& u : pp_new.cluster[i].unresolved_momenta) {
+      pp_new.momenta.push_back(u);
     }
   }
   pp_new.weight = pp.weight*jacobian;
