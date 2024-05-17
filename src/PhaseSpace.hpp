@@ -100,7 +100,10 @@ class Cluster {
     Cluster() {};
     std::vector<Momentum> unresolved_momenta;
     Momentum reference_momentum;
-    //double weight;
+
+    bool operator < (const Cluster& cluster2) const {
+      return (this->unresolved < cluster2.unresolved);
+    }
 };
 
 class PESCPhaseSpace : public PhaseSpace  {

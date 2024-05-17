@@ -9,100 +9,17 @@
 int main() {
   srand(12);
   double COM = 1000.;
-  int nBorn = 2;
-  int nUnresolved = 2;
-
-  /*Tree<Cluster> tree;
-  TreeNode<Cluster>* root = new TreeNode<Cluster>(Cluster());
-  tree.setRoot(root);
-  TreeNode<Cluster>* r1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r2 = new TreeNode<Cluster>(Cluster(true));
-  r1->data.reference = 2;
-  r2->data.reference = 3;
-  r1->data.unresolved = 1;
-  r2->data.unresolved = 0;
-  tree.addChild(root, r1);
-  tree.addChild(root, r2);
-  TreeNode<Cluster>* r1_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r2_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* u1_1 = new TreeNode<Cluster>(Cluster(false));
-  r1_1->data.reference = 2;
-  r2_1->data.reference = 3;
-  r2_1->data.unresolved = 1;
-  r1_1->data.unresolved = 0;
-  u1_1->data.unresolved = 0;
-  u1_1->data.reference = 2 + nBorn;
-  tree.addChild(r1, r1_1);
-  tree.addChild(r2, r2_1);
-  tree.addChild(r1, u1_1);
-  TreeNode<Cluster>* r2_1_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* u2_1_1 = new TreeNode<Cluster>(Cluster(false));
-  r2_1_1->data.unresolved = 0;
-  u2_1_1->data.unresolved = 0;
-  r2_1_1->data.reference = 3;
-  u2_1_1->data.reference = 2 + nBorn + 1;
-  tree.addChild(r2_1, r2_1_1);
-  tree.addChild(r2_1, u2_1_1);
-
-  tree.print();
-
-  PhaseSpace pp1 = Splitting(nBorn, COM);
-  PhaseSpace pp_full = GenMomenta2(pp1, tree);
-  pp_full.print();*/
-
-  Tree<Cluster> tree;
-  TreeNode<Cluster>* root = new TreeNode<Cluster>(Cluster());
-  tree.setRoot(root);
-  TreeNode<Cluster>* r1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r2 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r1_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r2_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* u1 = new TreeNode<Cluster>(Cluster(false));
-  TreeNode<Cluster>* u2 = new TreeNode<Cluster>(Cluster(false));
-  r1->data.unresolved = 1;
-  r2->data.unresolved = 1;
-
-  tree.addChild(root, r1);
-  tree.addChild(root, r2);
-  tree.addChild(r1, u1);
-  tree.addChild(r2, u2);
-  tree.addChild(r1, r1_1);
-  tree.addChild(r2, r2_1);
-  std::vector<int> flavor = {0,0,1,1};
-  tree.print();
-  std::vector<Tree<Cluster>> sectors = GenSectors(flavor, tree, nBorn + 2);
-  for(Tree<Cluster>& t : sectors) {
-    t.print();
-    std::cout << "ref1 = " << t.getRoot()->children[0]->data.reference << std::endl;
-    std::cout << "ref2 = " << t.getRoot()->children[1]->data.reference << std::endl;
-    std::cout << t.getRoot()->children[0]->data.unresolved << std::endl;
-    std::cout << t.getRoot()->children[1]->data.unresolved << std::endl;
-    std::cout << t.getRoot()->children[0]->children.size() << std::endl;
-    std::cout << t.getRoot()->children[1]->children.size() << std::endl;
-
-    PhaseSpace pp1 = Splitting(nBorn, COM);
-    PhaseSpace pp_full = GenMomenta2(pp1, t);
-    pp_full.print();
-  }
-  return 0;
-
-  std::vector<Tree<Cluster>> tree_next = GenTrees(3);
-
-  for(int i = 0; i < tree_next.size(); i++) {
-    Tree<Cluster> tree = tree_next[i];
-    std::cout << "\n\n" << std::endl;
-    std::cout << i << ":" << std::endl;
-    for(int i = 0; i < 100; i++) std::cout << "#";
-    std::cout << "\n\n" << std::endl;
-    tree.print();
-    std::vector<Tree<Cluster>> sectors = GenSectors(flavor, tree, nBorn + 2);
-    for(Tree<Cluster>& sector : sectors) {
-      sector.print();
-    }
-  }
+  int nBorn = 4;
+  int nUnresolved = 3;
+  PhaseSpace ppBorn = Splitting(nBorn, COM);
+  Cluster c1(2, 1);
+  Cluster c2(3, 0);
+  std::vector<Cluster> cluster_test = {c1, c2};
+  PhaseSpace ppFull = GenMomenta(ppBorn, cluster_test);
+  ppBorn.print();
+  ppFull.print();
 
   return 0;
-
   int sample_size = 1000000;
   //cubareal x[3*nBorn - 4];
   int spin = -1;

@@ -335,6 +335,9 @@ PhaseSpace Splitting(int nMomenta, double COM) {
 
 PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster, std::vector<std::vector<std::vector<double>>> xPar) {
   PESCPhaseSpace pp_new;
+  if(cluster.size() != xPar.size()) {
+    throw Exception("xPar does not match size of cluster");
+  }
   pp_new.cluster = cluster;
   for(int j = 0; j < pp_new.cluster.size(); j++) {
     pp_new.cluster[j].unresolved_momenta = std::vector<Momentum>(0);
@@ -382,7 +385,7 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
     // determine weight factor
     double c1 = -2.*P*r + 2.*r*rTot;
     double c2 = -2.*P*r + 2.*r*rWeighted + 2.*r*uTot;
-    double c3 = -2.*P*rWeighted + rWeighted*rWeighted - 2.*P*uTot + uTot*uTot + 2.*rWeighted*uTot + 2.*P*(rTot - r) + (rTot - r)*(rTot - r);
+    double c3 = -2.*P*rWeighted + rWeighted*rWeighted - 2.*P*uTot + uTot*uTot + 2.*rWeighted*uTot + 2.*P*(rTot - r) - (rTot - r)*(rTot - r);
 
     jacobian *= pow(xj, dim - 3)* (-1.)/(-c1*c2/pow(c2*xj + c3, 2));
     if(xj < 0) {
@@ -454,6 +457,13 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
 }
 
 PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std::vector<std::vector<std::vector<double>>> xPar) {
+  struct ClusterxPar {
+    Cluster cluster;
+    std::vector<std::vector<double>> xPar;
+    bool operator < (const ClusterxPar& pair2) {
+      return (this->cluster < pair2.cluster);
+    }
+  };
   TreeNode<Cluster>* root = clusterTree.getRoot();
   PhaseSpace pp_new = pp;
   TreeNode<Cluster>* current = root;
@@ -465,7 +475,7 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, st
   while(level.size() > 0) {
     std::vector<Cluster> currCluster;
     for(TreeNode<Cluster>* cluster : level) {
-      if(cluster->children.size() > 1)
+      if(cluster->children.size() > 0)
         currCluster.push_back(cluster->data);
     }
     std::vector<std::vector<std::vector<double>>> currxPar;
@@ -474,10 +484,26 @@ PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, st
         currxPar.push_back(xPar[clusterCounter]);
         clusterCounter++;
       }
+      else {
+        currxPar.push_back(std::vector<std::vector<double>>(1, std::vector<double>(0)));
+      }
     }
-
+    std::vector<ClusterxPar> pairs;
+    for(int i = 0; i < currCluster.size(); i++) {
+      ClusterxPar pair;
+      pair.cluster = currCluster[i];
+      pair.xPar = currxPar[i];
+      pairs.push_back(pair);
+    }
+    std::sort(pairs.begin(), pairs.end());
+    std::vector<Cluster> currCluster_sorted;
+    std::vector<std::vector<std::vector<double>>> currxPar_sorted;
+    for(ClusterxPar& pair : pairs) {
+      currCluster_sorted.push_back(pair.cluster);
+      currxPar_sorted.push_back(pair.xPar);
+    }
     if(currCluster.size() != 0) {
-      pp_new = GenMomenta(pp_new, currCluster, currxPar);
+      pp_new = GenMomenta(pp_new, currCluster_sorted, currxPar_sorted);
     }
     for(TreeNode<Cluster>* cluster : level) {
       cluster->data.reference_momentum = pp_new.momenta[cluster->data.reference];
@@ -552,6 +578,11 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
       std::vector<std::vector<int>> permutations = getPermutations(partition);
       for(std::vector<int>& permutation : permutations) {
         bool valid_splitting = true;
+        // Remove permutations with more than 1 unresolved parton
+        for(int& j : permutation) {
+          if(j > 1) valid_splitting = false;
+        }
+        if(!valid_splitting) continue;
         Tree<Cluster> treeCopy(tree);
         for(int node_counter = 0; node_counter < level.size(); node_counter++) {
           TreeNode<Cluster>* node = treeCopy.getLevel(tree.depth() - 1)[node_counter];
@@ -650,6 +681,19 @@ std::vector<Tree<Cluster>> GenTrees(int nUnresolved) {
   }
 
   removeRedundentTrees(output);
+  for(Tree<Cluster>& tree : output) {
+    for(int i = 1; i < tree.depth() - 1; i++) {
+      std::vector<TreeNode<Cluster>*> level = tree.getLevel(i);
+      for(TreeNode<Cluster>* node : level) {
+        if(node->children.size() == 0) {
+          TreeNode<Cluster>* child = new TreeNode<Cluster>(true);
+          tree.addChild(node, child);
+        }
+      }
+
+    }
+
+  }
   // Determine the number of unresolved partons in each cluster
   for(Tree<Cluster>& tree : output) {
     std::vector<TreeNode<Cluster>*> nodes = tree.getNodes();
@@ -778,25 +822,6 @@ void removeRedundentTrees(std::vector<Tree<Cluster>>& trees) {
   }
 }
 
-void GenSectors(TreeNode<Cluster>* node, int reference, int& unresolved) {
-  // This function labels a single tree according to the indices provided in reference
-  if(node == nullptr) return;
-
-  if(node->data.isReference) {
-    node->data.reference = reference;
-    for(TreeNode<Cluster>* child : node->children) {
-      GenSectors(child, reference, unresolved);
-    }
-  }
-  else {
-    node->data.reference = unresolved;
-    for(TreeNode<Cluster>* child : node->children) {
-      unresolved++;
-      GenSectors(child, node->data.reference, unresolved);
-    }
-  }
-}
-
 std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluster>& tree, int nBorn) {
   // This function takes a bare tree and assigns reference indices to the tree, so that it can be used for the generation of phase-space points
   // flavor is a vector of parton flavor: 0 means no QCD interaction, 1 means QCD interaction
@@ -859,11 +884,25 @@ std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluste
       }
       int unresolved_counter = nBorn;
       for(int i = 0; i < treeCopyCopy.getRoot()->children.size(); i++) {
-        GenSectors(treeCopyCopy.getRoot()->children[i], permutation[i], unresolved_counter);
+        treeCopyCopy.getRoot()->children[i]->data.reference = permutation[i];
+      }
+      int level_int = 2;
+      std::vector<TreeNode<Cluster>*> level = treeCopyCopy.getLevel(level_int);
+      while(level.size() > 0) {
+        for(int i = 0; i < level.size(); i++) {
+          if(level[i]->data.isReference) {
+            level[i]->data.reference = level[i]->parent->data.reference;
+          }
+          else {
+            level[i]->data.reference = unresolved_counter;
+            unresolved_counter++;
+          }
+        }
+        level_int++;
+        level = treeCopyCopy.getLevel(level_int);
       }
       output.push_back(treeCopyCopy);
     }
   }
-
   return output;
 }
