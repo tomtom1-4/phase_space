@@ -382,7 +382,7 @@ PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& clust
     // determine weight factor
     double c1 = -2.*P*r + 2.*r*rTot;
     double c2 = -2.*P*r + 2.*r*rWeighted + 2.*r*uTot;
-    double c3 = -2.*P*rWeighted + rWeighted*rWeighted - 2.*P*uTot + uTot*uTot + 2.*rWeighted*uTot + 2.*P*(rTot - r) + (rTot - r)*(rTot - r);
+    double c3 = -2.*P*rWeighted + rWeighted*rWeighted - 2.*P*uTot + uTot*uTot + 2.*rWeighted*uTot + 2.*P*(rTot - r) - (rTot - r)*(rTot - r);
 
     jacobian *= pow(xj, dim - 3)* (-1.)/(-c1*c2/pow(c2*xj + c3, 2));
     if(xj < 0) {
