@@ -550,24 +550,9 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
   std::vector<Tree<Cluster>> output;
   if(nUnresolved <= 0) return output;
   std::vector<TreeNode<Cluster>*> level = tree.getLevel(tree.depth() - 1);
-  // Find out wich of the last nodes are reference
-  std::vector<bool> isReference;
-  int nUnresolved_sofar = 0;
-  for(TreeNode<Cluster>* node : level) {
-    if(node->data.isReference)
-      isReference.push_back(true);
-    else {
-      isReference.push_back(false);
-    }
-  }
-  for(TreeNode<Cluster>* node : tree.getNodes()) {
-    if(node == tree.getRoot()) continue;
-    if(!node->data.isReference)
-      nUnresolved_sofar++;
-  }
 
   // Every unresolved can split, ergo the max number of new nodes is 2*nUresolved
-  for(int i = 1; i <= 2*nUnresolved; i++) {
+  for(int i = 1; i <= nUnresolved; i++) {
     // A patition of i corresponds to the way we distribute the i unresolved nodes among the existing nodes
     std::vector<std::vector<int>> partitions = getPartitions(i);
     for(std::vector<int> partition : partitions) {
@@ -575,58 +560,35 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
       // Fill remaining spots with zero
       for(int dummy = partition.size(); dummy < level.size(); dummy++) partition.push_back(0);
       // The partition can appear in all possible permutations
-      std::vector<std::vector<int>> permutations = getPermutations(partition);
-      for(std::vector<int>& permutation : permutations) {
-        bool valid_splitting = true;
-        // Remove permutations with more than 1 unresolved parton
-        for(int& j : permutation) {
-          if(j > 1) valid_splitting = false;
+      // Remove partition with more than 1 unresolved parton (Binary tree)
+      bool valid_splitting = true;
+      for(int& j : partition) {
+        if(j > 1) {
+          valid_splitting = false;
+          break;
         }
-        if(!valid_splitting) continue;
+      }
+      if(!valid_splitting) continue;
+      std::vector<std::vector<int>> permutations = getPermutations(partition);
+
+      for(std::vector<int>& permutation : permutations) {
         Tree<Cluster> treeCopy(tree);
         for(int node_counter = 0; node_counter < level.size(); node_counter++) {
           TreeNode<Cluster>* node = treeCopy.getLevel(tree.depth() - 1)[node_counter];
-          bool generate_unresolved = false;
-          // If a reference node splits, we need a new reference node in the next level
-          if(isReference[node_counter] and (permutation[node_counter] > 0)) {
-            TreeNode<Cluster>* child_ref = new TreeNode<Cluster>(true);
-            treeCopy.addChild(node, child_ref);
-            generate_unresolved = true;
-          }
           // Remove trees where a reference has never any splitting
-          if(isReference[node_counter] and (node->parent == treeCopy.getRoot()) and (permutation[node_counter] == 0)) {
+          if(node->data.isReference and (node->parent == treeCopy.getRoot()) and (permutation[node_counter] == 0)) {
             valid_splitting = false;
             break;
           }
-          // Remove trees where an unresolved does not split
-          if(!isReference[node_counter] and (permutation[node_counter] == 1)) {
-            valid_splitting = false;
-            break;
-          }
-          // Generate unresolved nodes in the next level
+          TreeNode<Cluster>* child_ref = new TreeNode<Cluster>(true);
+          treeCopy.addChild(node,child_ref);
+          // Generate unresolved
           for(int n = 0; n < permutation[node_counter]; n++) {
-            if(!generate_unresolved) {
-              TreeNode<Cluster>* child_ref = new TreeNode<Cluster>(true);
-              treeCopy.addChild(node, child_ref);
-              generate_unresolved = true;
-            }
-            else {
-              TreeNode<Cluster>* child = new TreeNode<Cluster>(false);
-              treeCopy.addChild(node, child);
-            }
+            TreeNode<Cluster>* child_unresolved = new TreeNode<Cluster>(false);
+            treeCopy.addChild(node, child_unresolved);
           }
         }
-        int nUnresolved_new = 0;
-        for(TreeNode<Cluster>* node : treeCopy.getNodes()) {
-          if(node != treeCopy.getRoot()) {
-            if(!node->data.isReference) nUnresolved_new++;
-          }
-        }
-        // Remove trees with two many unresolved nodes
-        if(nUnresolved_new - nUnresolved_sofar > nUnresolved) valid_splitting = false;
-        if(valid_splitting) {
-          output.push_back(treeCopy);
-        }
+        if(valid_splitting) output.push_back(treeCopy);
       }
     }
   }
@@ -681,18 +643,22 @@ std::vector<Tree<Cluster>> GenTrees(int nUnresolved) {
   }
 
   removeRedundentTrees(output);
-  for(Tree<Cluster>& tree : output) {
-    for(int i = 1; i < tree.depth() - 1; i++) {
-      std::vector<TreeNode<Cluster>*> level = tree.getLevel(i);
-      for(TreeNode<Cluster>* node : level) {
-        if(node->children.size() == 0) {
-          TreeNode<Cluster>* child = new TreeNode<Cluster>(true);
-          tree.addChild(node, child);
-        }
+  // Remove unneccessary intermediate nodes
+  int tree_counter = 0;
+  while (tree_counter < output.size()) {
+    bool skip = false;
+    Tree<Cluster>& tree = output[tree_counter];
+    std::vector<TreeNode<Cluster>*> nodes = tree.getNodes();
+    for(TreeNode<Cluster>* node : nodes) {
+      if(node == tree.getRoot()) continue;
+      if(node->parent == tree.getRoot()) continue;
+      if((node->children.size() > 1) and (node->parent->children.size() == 1)) {
+        output.erase(output.begin() + tree_counter);
+        skip = true;
+        break;
       }
-
     }
-
+    if(!skip) tree_counter++;
   }
   // Determine the number of unresolved partons in each cluster
   for(Tree<Cluster>& tree : output) {
@@ -716,6 +682,12 @@ void compareNodes(TreeNode<Cluster>* node1, TreeNode<Cluster>* node2, bool& stat
     return;
   }
   else {
+    if(node1->data.isReference != node2->data.isReference) {
+      if(node1->parent->data.isReference) {
+        status = false;
+        return;
+      }
+    }
     for(int i = 0; i < node1->children.size(); i++) {
       compareNodes(node1->children[i], node2->children[i], status);
     }
@@ -732,7 +704,6 @@ bool compareTrees(const Tree<Cluster>& tree1, const Tree<Cluster>& tree2) {
   else {
     for(int i = 0; i < root1->children.size(); i++) {
       if(root1->children[i]->data.isReference != root2->children[i]->data.isReference){
-        std::cout << root1->children[i]->data.isReference  << ", " << root2->children[i]->data.isReference << "\t" << root1->children.size() << std::endl;
         return false;
       }
     }

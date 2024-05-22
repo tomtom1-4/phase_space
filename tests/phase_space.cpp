@@ -11,8 +11,10 @@ int main() {
   std::vector<Tree<Cluster>> trees = GenTrees(nUnresolved);
   for(int tree_counter = 0; tree_counter < trees.size(); tree_counter++) {
   Tree<Cluster>& tree = trees[tree_counter];
+  if(tree.getRoot()->children.size() > 1) continue; // Remove multiple reference, as they are trivial
   std::vector<Tree<Cluster>> sectors = GenSectors(flavor, tree, nBorn + 2);
-  for(int sec_counter = 0; sec_counter < sectors.size(); sec_counter++) {
+  //for(int sec_counter = 0; sec_counter < sectors.size(); sec_counter++) {
+  for(int sec_counter = 0; sec_counter < 1; sec_counter++) {
   Tree<Cluster> clusterTree = sectors[sec_counter];
 
   PhaseSpace pp = Splitting(nBorn, COM);
@@ -71,7 +73,7 @@ int main() {
 
   UserData2 data2(COM, nBorn, nUnresolved, &clusterTree);
   std::cout << "\033[1;37m--Perform phase space integration using VEGAS...\033[0m\n" << std::endl;
-  Vegas(3*(nBorn + nUnresolved) - 4, 1, *integrand_full2, &data2, 1, 0.01, 0.001, 0, 12, 100, sample_size, 10000, 100000, 1000, 2, "", &spin, &neval, &fail, integral, error, prob);
+  Vegas(3*(nBorn + nUnresolved) - 4, 1, *integrand_full2, &data2, 1, 0.01, 0.001, 0, 12, 100, sample_size, 100000, 10000, 1000, 2, "", &spin, &neval, &fail, integral, error, prob);
   std::cout << "\tIntegral = " << integral[0] << " +- " << error[0] << "\t" << error[0]/integral[0]*100 << " %\t" << prob[0] << std::endl;
   PhaseSpace control = RAMBO(nBorn + nUnresolved, COM);
   std::cout << "\tExact result = " << control.weight << std::endl;
