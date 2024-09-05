@@ -1,5 +1,5 @@
-#ifndef PHASESPACE_HPP
-#define PHASESPACE_HPP
+#ifndef PHASESPACE2_HPP
+#define PHASESPACE2_HPP
 
 #include <vector>
 #include <cmath>
@@ -9,6 +9,9 @@
 #include "Exception.hpp"
 #include "Utilities.hpp"
 #include "Tree.hpp"
+
+namespace PSF
+{
 
 class LorentzMatrix {
   public:
@@ -135,5 +138,5 @@ std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluste
 
 bool compareTrees(const Tree<Cluster>& tree1, const Tree<Cluster>& tree2);
 
-
+}
 #endif

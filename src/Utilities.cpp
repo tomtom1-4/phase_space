@@ -1,5 +1,8 @@
 #include "Utilities.hpp"
 
+namespace PSF
+{
+
 int factorial(int n) {
   int output = 1;
   for(int i = 1; i <= n; i++) {
@@ -129,4 +132,6 @@ std::vector<std::vector<int>> generateSubsets(const std::vector<int>& original, 
   generateSubsetsHelper(sortedOriginal, currentSubset, subsets, 0, n);
 
   return subsets;
+}
+
 }

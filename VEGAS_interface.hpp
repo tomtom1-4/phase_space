@@ -6,6 +6,8 @@
 #include "src/Tree.hpp"
 #include "/home/tom/Documents/software/software/Cuba-4.2.2/cuba.h"
 
+using namespace PSF;
+
 struct UserData {
   double COM;
   std::vector<Cluster> cluster;

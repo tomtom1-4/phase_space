@@ -5,6 +5,9 @@
 #include <vector>
 #include <string>
 
+namespace PSF
+{
+
 template <typename T>
 struct TreeNode {
   T data;
@@ -151,4 +154,5 @@ public:
   }
 };
 
+}
 #endif

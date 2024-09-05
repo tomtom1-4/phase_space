@@ -1,6 +1,9 @@
 #include "Tree.hpp"
 #include "PhaseSpace.hpp"
 
+namespace PSF
+{
+
 template <typename T>
 void Tree<T>::addChild(TreeNode<T>* parent, TreeNode<T>* child) {
   // If no root selected, the child will become the root
@@ -141,3 +144,4 @@ void Tree<Cluster>::print() {
 
 template class Tree<Cluster>;
 
+}

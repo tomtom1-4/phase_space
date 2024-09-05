@@ -6,6 +6,9 @@
 #include <set>
 #include <algorithm>
 
+namespace PSF
+{
+
 int factorial(int n);
 
 std::vector<std::vector<int>> getPartitions(int n);
@@ -16,5 +19,5 @@ void removeDuplicates(std::vector<std::vector<int>>& vecOfVecs);
 
 std::vector<std::vector<int>> generateSubsets(const std::vector<int>& original, int n);
 
-
+}
 #endif

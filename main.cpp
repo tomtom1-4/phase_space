@@ -5,6 +5,7 @@
 #include "/home/tom/Documents/software/software/Cuba-4.2.2/cuba.h"
 #include "VEGAS_interface.hpp"
 
+using namespace PSF;
 
 int main() {
   srand(12);

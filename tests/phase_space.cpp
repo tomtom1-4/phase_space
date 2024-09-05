@@ -1,9 +1,11 @@
 #include "../VEGAS_interface.hpp"
 
+using namespace PSF;
+
 int main() {
   srand(12);
   double COM = 1000.;
-  int nBorn = 4;
+  int nBorn = 2;
   int nUnresolved = 3;
   std::vector<int> flavor = {0, 0};
   for(int i = 0 ; i < nBorn; i++) flavor.push_back(1);

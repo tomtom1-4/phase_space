@@ -1,5 +1,8 @@
 #include "PhaseSpace.hpp"
 
+namespace PSF
+{
+
 void LorentzMatrix::print() const {
   int precision = 6;
   std::cout << std::setprecision(precision);
@@ -876,4 +879,6 @@ std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluste
     }
   }
   return output;
+}
+
 }
