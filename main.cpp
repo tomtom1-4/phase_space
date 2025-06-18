@@ -11,7 +11,7 @@ int main() {
   srand(12);
   double COM = 1000.;
   int nBorn = 4;
-  int nUnresolved = 3;
+  int nUnresolved = 1;
   PhaseSpace ppBorn = Splitting(nBorn, COM);
   Cluster c1(2, 1);
   Cluster c2(3, 0);
@@ -20,7 +20,7 @@ int main() {
   ppBorn.print();
   ppFull.print();
 
-  return 0;
+  //return 0;
   int sample_size = 1000000;
   //cubareal x[3*nBorn - 4];
   int spin = -1;
@@ -35,25 +35,26 @@ int main() {
   PhaseSpace control = RAMBO(nBorn, COM);
   std::cout << "integralControl = " << control.weight << "\n\n" << std::endl;
 
-  Cluster cluster1(4, 3);
+  Cluster cluster1(3, nUnresolved);
   Cluster cluster2(4, 2);
   Cluster cluster3(5, 2);
   std::vector<Cluster> cluster = {cluster1};
-  for(auto& c : cluster) {
-    nUnresolved += c.unresolved;
-  }
-  TreeNode<Cluster>* rootc = new TreeNode<Cluster>(Cluster(4, 1));
-  TreeNode<Cluster>* node1c = new TreeNode<Cluster>(Cluster(4, 1));
-  TreeNode<Cluster>* node2c = new TreeNode<Cluster>(Cluster(5, 1));
+  //for(auto& c : cluster) {
+  //  nUnresolved += c.unresolved;
+  //}
+  std::unique_ptr<TreeNode<Cluster>> rootc =  std::make_unique<TreeNode<Cluster>>(Cluster(4, 1));
+  std::unique_ptr<TreeNode<Cluster>> node1c = std::make_unique<TreeNode<Cluster>>(Cluster(4, 1));
+  std::unique_ptr<TreeNode<Cluster>> node2c = std::make_unique<TreeNode<Cluster>>(Cluster(5, 1));
   Tree<Cluster> clusterTree;
-  clusterTree.setRoot(rootc);
-  clusterTree.addChild(rootc, node1c);
-  clusterTree.addChild(rootc, node2c);
+  clusterTree.setRoot(std::move(rootc));
+  clusterTree.addChild(clusterTree.getRoot(), std::move(node1c));
+  clusterTree.addChild(clusterTree.getRoot(), std::move(node2c));
   clusterTree.print();
   std::vector<TreeNode<Cluster>*> allNodes = clusterTree.getNodes();
-  for(TreeNode<Cluster>* node : allNodes) {
-    std::cout << node->index << "/" << clusterTree.nNodes << std::endl;
+  for(auto& node : allNodes) {
+    std::cout << node->index << "/" << clusterTree.size() << std::endl;
   }
+
 
   UserData data(COM, nBorn, cluster);
   Vegas(3*(nBorn + nUnresolved) - 4, 1, *integrand_full, &data, 1, 0.001, 0.001, 0, 12, 100, sample_size, 1000, 10000, 1000, 2, "", &spin, &neval, &fail, integral, error, prob);
@@ -73,6 +74,7 @@ int main() {
   std::cout << "ratio = " << integral[0]/control.weight << std::endl;
   std::cout << "deviation = " << (integral[0] - control.weight)/error[0] << std::endl;
 
+  return 0;
   // Test Infrared limits
   PhaseSpace pp = Splitting(nBorn, COM);
   pp.print();

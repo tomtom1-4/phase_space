@@ -1,18 +1,47 @@
-LIBS = -lcuba -lm
+# optimization level, default is 3
+LEVEL = 3
 
-all: main.exe
+USE_CUBA = true # true/false interface to CUBA MC integration using the VEGAS algorithm
 
-%.exe : %.o src/PhaseSpace.o src/Utilities.o src/Tree.o VEGAS_interface.o
-		g++  -std=c++17 -O3 -o $@ $^ $(LIBS)
+LIBS = -lm
+CXXFLAGS = -std=c++17 -O$(LEVEL)
 
-%.o : %.cpp src/PhaseSpace.cpp src/Utilities.cpp src/Tree.cpp VEGAS_interface.cpp
-		g++ -std=c++17 -O3 -o $@ -c $< $(LIBS)
+ifeq ($(strip $(USE_CUBA)),true)
+	LIBS += -lcuba
+	CXXFLAGS += -DUSE_CUBA
+	CUBA_SOURCES = VEGAS_interface.cpp
+	CUBA_OBJECTS = VEGAS_interface.o
+else
+	CUBA_SOURCES =
+	CUBA_OBJECTS =
+endif
+
+export USE_CUBA CXXFLAGS LIBS
+
+SOURCES = src/PhaseSpace.cpp src/Utilities.cpp src/Tree.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
+
+# Add CUBA objects if USE_CUBA=true
+OBJECTS += $(CUBA_OBJECTS)
+
+all: examples/gen_pp.exe examples/pp_integration.exe
+
+# Build main.exe; only link in CUBA-related objects if USE_CUBA=true
+%.exe: %.o $(OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
+
+# Generic rule to build .o files from .cpp files
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Build object files for sources in src/
+src/%.o: src/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-		rm -f *.o *.exe
+	rm -f *.o *.exe examples/*.o examples/*.exe src/*.o
 
-tests :
-		$(MAKE) -C tests
+tests:
+	$(MAKE) -C tests
 
 .PHONY: all clean tests
-.PRECIOUS: src/PhaseSpace.o src/Utilities.o src/Tree.o VEGAS_interface.o

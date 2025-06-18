@@ -119,9 +119,10 @@ double RAMBO_measure(int nMomenta, double COM) {
 }
 
 PhaseSpace RAMBO(int nMomenta, double COM) {
+  // Kleiss, R., Stirling, W., & Ellis, S. (1986). A new Monte Carlo treatment of multiparticle phase space at high energies. Computer Physics Communications, 40(2–3), 359–373.
   // generate n massless momenta uniformly distributed with energy following E*Exp(-E)
   std::vector<Momentum> massless_momenta;
-
+  // Generate random momenta according to Eq. (3.1)
   for(int i = 0; i < nMomenta; i++) {
     double rho1 = rnd(0., 1.);
     double rho2 = rnd(0., 1.);
@@ -137,6 +138,8 @@ PhaseSpace RAMBO(int nMomenta, double COM) {
     double qz = q0*cos;
     massless_momenta.push_back(Momentum(std::vector<double>({q0, qx, qy, qz})));
   }
+
+  // Compute auxiliary quantities of Eq. (2.5)
   Momentum Q;
   for(int i = 0; i < nMomenta; i++) {
     Q = Q + massless_momenta[i];
@@ -147,9 +150,11 @@ PhaseSpace RAMBO(int nMomenta, double COM) {
   double gamma = Q.components[0]/M;
   double a = 1./(1. + gamma);
   std::vector<Momentum> output;
+  // Define incoming momenta
   output.push_back(Momentum(std::vector<double>({-COM/2., 0, 0, -COM/2.})));
   output.push_back(Momentum(std::vector<double>({-COM/2., 0, 0, COM/2.})));
 
+  // Compute outgoing momenta according to Eq. (2.4)
   for(int i = 0; i < nMomenta; i++) {
     std::vector<double> pi = {0,0,0,0};
     pi[0] = x*(gamma*massless_momenta[i].components[0] - b*massless_momenta[i]);
@@ -159,13 +164,14 @@ PhaseSpace RAMBO(int nMomenta, double COM) {
     output.push_back(Momentum(pi));
   }
   PhaseSpace pp(output);
+  // Compute the measure
   pp.weight = RAMBO_measure(nMomenta, COM);
   return pp;
 }
 
-// Lam becomes rotation matrix
 LorentzMatrix rotation(double x, double y, double z) {
-  LorentzMatrix Lam;
+  LorentzMatrix Lam; // Lam becomes rotation matrix
+
   Lam.components[0][0] = 1; Lam.components[0][1] = 0; Lam.components[0][2] = 0; Lam.components[0][3] = 0;
   Lam.components[1][0] = 0; Lam.components[1][1] = std::cos(z)*std::cos(y);  Lam.components[1][2] = std::cos(z)*std::sin(y)*std::sin(x)-std::sin(z)*std::cos(x);  Lam.components[1][3] = std::cos(z)*std::sin(y)*std::cos(x)+std::sin(z)*std::sin(x);
   Lam.components[2][0] = 0; Lam.components[2][1] = std::sin(z)*std::cos(y); Lam.components[2][2] = std::sin(z)*std::sin(y)*std::sin(x)+std::cos(z)*std::cos(x); Lam.components[2][3] = std::sin(z)*std::sin(y)*std::cos(x)-std::cos(z)*std::sin(x);
@@ -259,9 +265,17 @@ LorentzMatrix find_LT(Momentum v1, Momentum v2) {
 PhaseSpace Splitting(int nMomenta, double COM, std::vector<std::vector<double>> x) {
   // Generate Phase space point with nMomenta momenta
   // x must be of length {{n - 2}, {n - 1}, {n - 1}}
+  if(x.size() != 3)
+    throw std::invalid_argument("x does not have length 3");
+  if(x[0].size() != nMomenta - 2)
+    throw std::invalid_argument("x[0] does not have length n - 2");
+  if(x[1].size() != nMomenta - 1)
+    throw std::invalid_argument("x[1] does not have length n - 1");
+  if(x[2].size() != nMomenta - 1)
+    throw std::invalid_argument("x[2] does not have length n - 1");
   PhaseSpace output;
 
-  std::vector<double> M(nMomenta - 1);
+  std::vector<double> M(nMomenta - 1); // M[0] is occupied by COM so it is only filled with nMomenta - 2 values
   std::vector<double> cos(nMomenta - 1);
   std::vector<double> phi(nMomenta - 1);
 
@@ -583,12 +597,12 @@ std::vector<Tree<Cluster>> GenTrees(const Tree<Cluster>& tree, int nUnresolved) 
             valid_splitting = false;
             break;
           }
-          TreeNode<Cluster>* child_ref = new TreeNode<Cluster>(true);
-          treeCopy.addChild(node,child_ref);
+          std::unique_ptr<TreeNode<Cluster>> child_ref = std::make_unique<TreeNode<Cluster>>(Cluster(true));
+          treeCopy.addChild(node,std::move(child_ref));
           // Generate unresolved
           for(int n = 0; n < permutation[node_counter]; n++) {
-            TreeNode<Cluster>* child_unresolved = new TreeNode<Cluster>(false);
-            treeCopy.addChild(node, child_unresolved);
+            std::unique_ptr<TreeNode<Cluster>> child_unresolved = std::make_unique<TreeNode<Cluster>>(Cluster(false));
+            treeCopy.addChild(node, std::move(child_unresolved));
           }
         }
         if(valid_splitting) output.push_back(treeCopy);
@@ -637,8 +651,8 @@ std::vector<Tree<Cluster>> GenTrees(int nUnresolved) {
   for(int nReference = 1; nReference <= nUnresolved; nReference++) {
     Tree<Cluster> treeCopy(baseTree);
     for(int rDummy = 1; rDummy <= nReference; rDummy++) {
-      TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
-      treeCopy.addChild(treeCopy.getRoot(), r);
+      std::unique_ptr<TreeNode<Cluster>> r = std::make_unique<TreeNode<Cluster>>(Cluster(true));
+      treeCopy.addChild(treeCopy.getRoot(), std::move(r));
     }
     std::vector<Tree<Cluster>> trees;
     GenTrees(treeCopy, nUnresolved, trees);
@@ -668,7 +682,7 @@ std::vector<Tree<Cluster>> GenTrees(int nUnresolved) {
     std::vector<TreeNode<Cluster>*> nodes = tree.getNodes();
     for(TreeNode<Cluster>* node : nodes) {
       int nUnresolved = 0;
-      for(TreeNode<Cluster>* child : node->children) {
+      for(auto& child : node->children) {
         if(!child->data.isReference) nUnresolved++;
       }
       node->data.unresolved = nUnresolved;
@@ -692,7 +706,7 @@ void compareNodes(TreeNode<Cluster>* node1, TreeNode<Cluster>* node2, bool& stat
       }
     }
     for(int i = 0; i < node1->children.size(); i++) {
-      compareNodes(node1->children[i], node2->children[i], status);
+      compareNodes(node1->children[i].get(), node2->children[i].get(), status);
     }
   }
 }
@@ -712,36 +726,66 @@ bool compareTrees(const Tree<Cluster>& tree1, const Tree<Cluster>& tree2) {
     }
     // If we get here, than the first level must be equal. Now check the remaining levels
     for(int i = 0; i < root1->children.size(); i++) {
-      compareNodes(root1->children[i], root2->children[i], output);
+      compareNodes(root1->children[i].get(), root2->children[i].get(), output);
     }
   }
   return output;
 }
 
-void genPermutations(const Tree<Cluster>& tree, TreeNode<Cluster>* input, std::vector<Tree<Cluster>>& output) {
-  // Takes a tree and a node inside that tree, and then generates all possible permutations of the children of the input node.
-  // The resulting trees are stored in the output vector
-  if(input->children.size() == 0) {
+void genPermutations(const Tree<Cluster>& tree,
+                     TreeNode<Cluster>* input,
+                     std::vector<Tree<Cluster>>& output) {
+  // If this node has no children, just store a copy of the entire tree.
+  if (input->children.empty()) {
     output.push_back(tree);
     return;
   }
-  std::vector<TreeNode<Cluster>*> nodes = tree.getNodes();
-  int input_index = -1;
-  for(int i = 0; i < nodes.size(); i++) {
-    if(nodes[i] == input) input_index = i;
-  }
-  std::vector<int> range;
-  for(int i = 0; i < input->children.size(); i++) range.push_back(i);
-  std::vector<std::vector<int>> permutations = getPermutations(range);
-  for(std::vector<int>& permutation : permutations) {
-    Tree<Cluster> treeCopy(tree);
-    TreeNode<Cluster>* inputCopy = treeCopy.getNodes()[input_index];
-    std::vector<TreeNode<Cluster>*> nodes_new = inputCopy->children;
-    for(int j = 0; j < permutation.size(); j++) {
-      inputCopy->children[j] = nodes_new[permutation[j]];
+
+  // 1. Identify the index of 'input' in the tree's node list (so we can find it after copying).
+  std::vector<TreeNode<Cluster>*> originalNodes = tree.getNodes();
+  int inputIndex = -1;
+  for (int i = 0; i < static_cast<int>(originalNodes.size()); i++) {
+    if (originalNodes[i] == input) {
+      inputIndex = i;
+      break;
     }
-    for(TreeNode<Cluster>* child : inputCopy->children) {
-      genPermutations(treeCopy, child, output);
+  }
+
+  // 2. Build a list of indices for the children to permute.
+  std::vector<int> range;
+  range.reserve(input->children.size());
+  for (int i = 0; i < static_cast<int>(input->children.size()); i++) {
+    range.push_back(i);
+  }
+
+  // 3. Generate all permutations of these child indices.
+  std::vector<std::vector<int>> permutations = getPermutations(range);
+
+  // 4. For each permutation, create a copy of the tree, reorder the children, and recurse.
+  for (const std::vector<int>& permutation : permutations) {
+    // Make a deep copy of the original tree.
+    Tree<Cluster> treeCopy(tree);
+
+    // Find the corresponding 'inputCopy' node in that copy.
+    std::vector<TreeNode<Cluster>*> copyNodes = treeCopy.getNodes();
+    TreeNode<Cluster>* inputCopy = copyNodes[inputIndex];
+
+    // Save (move) the unique_ptr children out of the node into a temporary vector.
+    std::vector<std::unique_ptr<TreeNode<Cluster>>> oldChildren;
+    oldChildren.reserve(inputCopy->children.size());
+    for (auto& childPtr : inputCopy->children) {
+      oldChildren.push_back(std::move(childPtr));
+    }
+    inputCopy->children.clear();
+
+    // Re-insert them in permuted order by moving unique_ptrs.
+    for (int idx : permutation) {
+      inputCopy->children.push_back(std::move(oldChildren[idx]));
+    }
+
+    // Recurse down each permuted child in the new tree.
+    for (auto& childPtr : inputCopy->children) {
+      genPermutations(treeCopy, childPtr.get(), output);
     }
   }
 }
@@ -801,7 +845,7 @@ std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluste
   // flavor is a vector of parton flavor: 0 means no QCD interaction, 1 means QCD interaction
   std::vector<Tree<Cluster>> output;
   int nReference = 0;
-  for(TreeNode<Cluster>* child : tree.getRoot()->children){
+  for(auto& child : tree.getRoot()->children){
     if(child->data.isReference) nReference++;
   }
 
@@ -820,27 +864,27 @@ std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluste
     TreeNode<Cluster>* root = new TreeNode<Cluster>(Cluster());
     treeCopy.setRoot(root);
     for(int i = 0; i < nReference; i++) {
-      TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
+      std::unique_ptr<TreeNode<Cluster>> r = std::make_unique<TreeNode<Cluster>>(Cluster(true));
       r->data.unresolved = 0;
-      treeCopy.addChild(root, r);
+      treeCopy.addChild(root, std::move(r));
     }
     for(int level_counter = 1; level_counter <= nReference; level_counter++) {
       std::vector<TreeNode<Cluster>*> level = treeCopy.getLevel(level_counter);
-      TreeNode<Cluster>* u = new TreeNode<Cluster>(Cluster(false));
+      std::unique_ptr<TreeNode<Cluster>> u = std::make_unique<TreeNode<Cluster>>(Cluster(false));
       u->data.unresolved = 0;
       if(level_counter == 1) {
         level[0]->data.unresolved = 1;
-        treeCopy.addChild(level[0], u);
+        treeCopy.addChild(level[0], std::move(u));
       }
       else {
         level[2]->data.unresolved = 1;
-        treeCopy.addChild(level[2], u);
+        treeCopy.addChild(level[2], std::move(u));
       }
       for(int i = level_counter==1?0:2; i < level.size(); i++) {
         if(level[i]->data.isReference) {
-          TreeNode<Cluster>* r = new TreeNode<Cluster>(Cluster(true));
+          std::unique_ptr<TreeNode<Cluster>> r = std::make_unique<TreeNode<Cluster>>(Cluster(true));
           r->data.unresolved = 0;
-          treeCopy.addChild(level[i], r);
+          treeCopy.addChild(level[i], std::move(r));
         }
       }
     }
