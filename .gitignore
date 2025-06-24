@@ -2,3 +2,8 @@
 *.exe
 *.o
 VEGAS
+src/Tree
+src/Utilities
+src/PhaseSpace
+docs/html
+docs/latex

@@ -5,104 +5,22 @@
 #include "/home/tom/Documents/software/software/Cuba-4.2.2/cuba.h"
 #include "VEGAS_interface.hpp"
 
+using namespace PSF;
 
 int main() {
   srand(12);
   double COM = 1000.;
-  int nBorn = 2;
-  int nUnresolved = 2;
+  int nBorn = 4;
+  int nUnresolved = 1;
+  PhaseSpace ppBorn = Splitting(nBorn, COM);
+  Cluster c1(2, 1);
+  Cluster c2(3, 0);
+  std::vector<Cluster> cluster_test = {c1, c2};
+  PhaseSpace ppFull = GenMomenta(ppBorn, cluster_test);
+  ppBorn.print();
+  ppFull.print();
 
-  /*Tree<Cluster> tree;
-  TreeNode<Cluster>* root = new TreeNode<Cluster>(Cluster());
-  tree.setRoot(root);
-  TreeNode<Cluster>* r1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r2 = new TreeNode<Cluster>(Cluster(true));
-  r1->data.reference = 2;
-  r2->data.reference = 3;
-  r1->data.unresolved = 1;
-  r2->data.unresolved = 0;
-  tree.addChild(root, r1);
-  tree.addChild(root, r2);
-  TreeNode<Cluster>* r1_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r2_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* u1_1 = new TreeNode<Cluster>(Cluster(false));
-  r1_1->data.reference = 2;
-  r2_1->data.reference = 3;
-  r2_1->data.unresolved = 1;
-  r1_1->data.unresolved = 0;
-  u1_1->data.unresolved = 0;
-  u1_1->data.reference = 2 + nBorn;
-  tree.addChild(r1, r1_1);
-  tree.addChild(r2, r2_1);
-  tree.addChild(r1, u1_1);
-  TreeNode<Cluster>* r2_1_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* u2_1_1 = new TreeNode<Cluster>(Cluster(false));
-  r2_1_1->data.unresolved = 0;
-  u2_1_1->data.unresolved = 0;
-  r2_1_1->data.reference = 3;
-  u2_1_1->data.reference = 2 + nBorn + 1;
-  tree.addChild(r2_1, r2_1_1);
-  tree.addChild(r2_1, u2_1_1);
-
-  tree.print();
-
-  PhaseSpace pp1 = Splitting(nBorn, COM);
-  PhaseSpace pp_full = GenMomenta2(pp1, tree);
-  pp_full.print();*/
-
-  Tree<Cluster> tree;
-  TreeNode<Cluster>* root = new TreeNode<Cluster>(Cluster());
-  tree.setRoot(root);
-  TreeNode<Cluster>* r1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r2 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r1_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* r2_1 = new TreeNode<Cluster>(Cluster(true));
-  TreeNode<Cluster>* u1 = new TreeNode<Cluster>(Cluster(false));
-  TreeNode<Cluster>* u2 = new TreeNode<Cluster>(Cluster(false));
-  r1->data.unresolved = 1;
-  r2->data.unresolved = 1;
-
-  tree.addChild(root, r1);
-  tree.addChild(root, r2);
-  tree.addChild(r1, u1);
-  tree.addChild(r2, u2);
-  tree.addChild(r1, r1_1);
-  tree.addChild(r2, r2_1);
-  std::vector<int> flavor = {0,0,1,1};
-  tree.print();
-  std::vector<Tree<Cluster>> sectors = GenSectors(flavor, tree, nBorn + 2);
-  for(Tree<Cluster>& t : sectors) {
-    t.print();
-    std::cout << "ref1 = " << t.getRoot()->children[0]->data.reference << std::endl;
-    std::cout << "ref2 = " << t.getRoot()->children[1]->data.reference << std::endl;
-    std::cout << t.getRoot()->children[0]->data.unresolved << std::endl;
-    std::cout << t.getRoot()->children[1]->data.unresolved << std::endl;
-    std::cout << t.getRoot()->children[0]->children.size() << std::endl;
-    std::cout << t.getRoot()->children[1]->children.size() << std::endl;
-
-    PhaseSpace pp1 = Splitting(nBorn, COM);
-    PhaseSpace pp_full = GenMomenta2(pp1, t);
-    pp_full.print();
-  }
-  return 0;
-
-  std::vector<Tree<Cluster>> tree_next = GenTrees(3);
-
-  for(int i = 0; i < tree_next.size(); i++) {
-    Tree<Cluster> tree = tree_next[i];
-    std::cout << "\n\n" << std::endl;
-    std::cout << i << ":" << std::endl;
-    for(int i = 0; i < 100; i++) std::cout << "#";
-    std::cout << "\n\n" << std::endl;
-    tree.print();
-    std::vector<Tree<Cluster>> sectors = GenSectors(flavor, tree, nBorn + 2);
-    for(Tree<Cluster>& sector : sectors) {
-      sector.print();
-    }
-  }
-
-  return 0;
-
+  //return 0;
   int sample_size = 1000000;
   //cubareal x[3*nBorn - 4];
   int spin = -1;
@@ -117,25 +35,26 @@ int main() {
   PhaseSpace control = RAMBO(nBorn, COM);
   std::cout << "integralControl = " << control.weight << "\n\n" << std::endl;
 
-  Cluster cluster1(4, 3);
+  Cluster cluster1(3, nUnresolved);
   Cluster cluster2(4, 2);
   Cluster cluster3(5, 2);
   std::vector<Cluster> cluster = {cluster1};
-  for(auto& c : cluster) {
-    nUnresolved += c.unresolved;
-  }
-  TreeNode<Cluster>* rootc = new TreeNode<Cluster>(Cluster(4, 1));
-  TreeNode<Cluster>* node1c = new TreeNode<Cluster>(Cluster(4, 1));
-  TreeNode<Cluster>* node2c = new TreeNode<Cluster>(Cluster(5, 1));
+  //for(auto& c : cluster) {
+  //  nUnresolved += c.unresolved;
+  //}
+  std::unique_ptr<TreeNode<Cluster>> rootc =  std::make_unique<TreeNode<Cluster>>(Cluster(4, 1));
+  std::unique_ptr<TreeNode<Cluster>> node1c = std::make_unique<TreeNode<Cluster>>(Cluster(4, 1));
+  std::unique_ptr<TreeNode<Cluster>> node2c = std::make_unique<TreeNode<Cluster>>(Cluster(5, 1));
   Tree<Cluster> clusterTree;
-  clusterTree.setRoot(rootc);
-  clusterTree.addChild(rootc, node1c);
-  clusterTree.addChild(rootc, node2c);
+  clusterTree.setRoot(std::move(rootc));
+  clusterTree.addChild(clusterTree.getRoot(), std::move(node1c));
+  clusterTree.addChild(clusterTree.getRoot(), std::move(node2c));
   clusterTree.print();
   std::vector<TreeNode<Cluster>*> allNodes = clusterTree.getNodes();
-  for(TreeNode<Cluster>* node : allNodes) {
-    std::cout << node->index << "/" << clusterTree.nNodes << std::endl;
+  for(auto& node : allNodes) {
+    std::cout << node->index << "/" << clusterTree.size() << std::endl;
   }
+
 
   UserData data(COM, nBorn, cluster);
   Vegas(3*(nBorn + nUnresolved) - 4, 1, *integrand_full, &data, 1, 0.001, 0.001, 0, 12, 100, sample_size, 1000, 10000, 1000, 2, "", &spin, &neval, &fail, integral, error, prob);
@@ -155,6 +74,7 @@ int main() {
   std::cout << "ratio = " << integral[0]/control.weight << std::endl;
   std::cout << "deviation = " << (integral[0] - control.weight)/error[0] << std::endl;
 
+  return 0;
   // Test Infrared limits
   PhaseSpace pp = Splitting(nBorn, COM);
   pp.print();

@@ -21,7 +21,7 @@ int integrand_born(const int *ndim, const cubareal x[], const int *ncomp, cubare
   return 0;
 }
 
-int integrand_full(const int *ndim, const cubareal x[], const int *ncomp, cubareal f[], void *userdata) {
+/*int integrand_full(const int *ndim, const cubareal x[], const int *ncomp, cubareal f[], void *userdata) {
   std::vector<double> xM, xcos, xphi;
   UserData *data = static_cast<UserData*>(userdata);
 
@@ -56,7 +56,7 @@ int integrand_full(const int *ndim, const cubareal x[], const int *ncomp, cubare
   PhaseSpace pp_full = GenMomenta(pp, data->cluster, xPar_rest);
   f[0] = pp_full.weight;
   return 0;
-}
+}*/
 
 int integrand_full2(const int *ndim, const cubareal x[], const int *ncomp, cubareal f[], void *userdata) {
   std::vector<double> xM, xcos, xphi;
@@ -97,7 +97,7 @@ int integrand_full2(const int *ndim, const cubareal x[], const int *ncomp, cubar
     if(cluster[j].unresolved > 0)
       xPar_rest.push_back(xPar_cluster);
   }
-  PhaseSpace pp_full = GenMomenta2(pp, *(data->clusterTree), xPar_rest);
+  PhaseSpace pp_full = GenMomenta(pp, *(data->clusterTree), xPar_rest);
   f[0] = pp_full.weight;
   return 0;
 }
