@@ -24,6 +24,7 @@ int main() {
   std::cout << control << std::endl;
 
   // Now we try to compute the phase space volume using different phase-space generation algorithms
+  {
   std::cout << "\n################################################################\n" << std::endl;
   std::cout << "Splitting\n" << std::endl;
   std::cout << "################################################################\n" << std::endl;
@@ -51,9 +52,12 @@ int main() {
                   << std::endl;
     }
   }
+  }
 
   #ifdef USE_CUBA
+  {
   std::cout << "\nPerform integration using the VEGAS algorithm with CUBA" << std::endl;
+  int samples = 100000;
   int spin = -1;
   int neval;
   int fail;
@@ -62,5 +66,55 @@ int main() {
   cubareal prob[1];
   Vegas(3*nMomenta - 4, 1, *integrand_born, &COM, 1, 0.0001, 0.0001, 8, 12, 100, samples, 1000, 10000, 1000, 1, "", &spin, &neval, &fail, integral, error, prob);
   std::cout << "integral = " << integral[0] << " +- " << error[0] << " (" << error[0]/integral[0]*100 << "%)\t probability that error is accurate: " << prob[0] << std::endl;
+  }
   #endif
+
+  {
+  std::cout << "\n################################################################\n" << std::endl;
+  std::cout << "Factorized Splitting\n" << std::endl;
+  std::cout << "################################################################\n" << std::endl;
+  int samples = 100000;
+  double var = 0.;
+  double err = 0.;
+  double result = 0.;
+  int nUnresolved = 2;
+  PhaseSpace ppBorn = RAMBO(nMomenta - nUnresolved, COM);
+
+  const std::vector<bool> flavor = {0, 0, 1, 1}; // this vector tells the tree generation which of the outgoing partons are allowed to split. 0 = Not allowed, 1 = allowed
+  std::vector<PSF::Tree<PSF::Cluster>> trees = PSF::GenTrees(nUnresolved);
+  // print all possible trees
+  for(int tree_counter = 0; tree_counter < trees.size(); tree_counter++) {
+    PSF::Tree<PSF::Cluster> tree = trees[tree_counter];
+    std::cout << "tree_counter = " << tree_counter << std:: endl;
+    tree.print();
+  }
+  PSF::Tree<PSF::Cluster> tree = trees[2];
+  std::cout << "marker0" << std::endl;
+  std::vector<PSF::Tree<PSF::Cluster>> sectors = PSF::GenSectors(flavor, trees[2], 4);
+  std::cout << "marker1" << std::endl;
+  for(int event_counter = 0; event_counter < samples; event_counter++) {
+    PSF::Tree<PSF::Cluster> clusterTree = sectors[0];
+    clusterTree.print();
+
+    PhaseSpace pp = PSF::GenMomenta(ppBorn, clusterTree);
+    pp.print();
+    double integrand = 1.;
+
+    result = result*event_counter/(event_counter + 1.) + pp.weight*integrand/(event_counter + 1.);
+    var = var*event_counter/(event_counter + 1.) + std::pow(pp.weight*integrand - result, 2)/(event_counter + 1.);
+
+    err = std::sqrt(var)/std::sqrt(event_counter);
+
+
+    if((event_counter + 1) % (samples/10) == 0) {
+      std::cout << std::setw(10) << std::setprecision(5) << event_counter + 1 << "/" << samples
+                  << std::setw(15) << result
+                  << " +- " << std::setw(6) << err
+                  << std::setw(2) << "(" << std::setw(7) << err/result*100 << "%)"
+                  << "    deviation: " << std::setw(10) << (result - control)/err
+                  << "    ratio: " << std::setw(10) << result/control
+                  << std::endl;
+    }
+  }
+  }
 }

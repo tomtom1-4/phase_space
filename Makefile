@@ -44,4 +44,5 @@ clean:
 tests:
 	$(MAKE) -C tests
 
+.PRECIOUS: src/PhaseSpace.o src/Utilities.o src/Tree.o VEGAS_interface.o
 .PHONY: all clean tests

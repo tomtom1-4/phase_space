@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <variant>
+#include <memory>
 #include "Exception.hpp"
 #include "Utilities.hpp"
 #include "Tree.hpp"
@@ -311,25 +312,44 @@ public:
   double weight;
 };
 
+/**
+ * @class Cluster
+ * @brief Container class for clusters.
+ *
+ * This class is used as the data type for the tree nodes in the generation of phase-space points.
+ *
+ *
+ */
 class Cluster {
   public:
-    int reference; // index of the reference momentum
-    int unresolved; // number of unresolved partons
+    /**
+     * @brief Index of the reference momentum.
+     */
+    int reference;
+
+    /**
+     * @brief Number of unresolved partons emerging from the Cluster.
+     */
+    int unresolved;
+
+    /**
+     * @brief Boolian that checks if the Cluster is defined as a reference or an unresolved cluster.
+     */
     bool isReference;
+
     Cluster(int reference, int unresolved) : reference(reference), unresolved(unresolved) {};
+
     Cluster(bool isReference) : isReference(isReference) {};
+
     Cluster() {};
+
     std::vector<Momentum> unresolved_momenta;
+
     Momentum reference_momentum;
 
     bool operator < (const Cluster& cluster2) const {
       return (this->unresolved < cluster2.unresolved);
     }
-};
-
-class PESCPhaseSpace : public PhaseSpace  {
-  public:
-    std::vector<Cluster> cluster;
 };
 
 /**
@@ -374,18 +394,61 @@ PhaseSpace Splitting(int nMomenta, double COM, std::vector<std::vector<double>> 
 
 PhaseSpace Splitting(int nMomenta, double COM);
 
-PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster, std::vector<std::vector<std::vector<double>>> x);
+/**
+ * @brief Returns phase-space point using a recursive Splitting algorithm.
+ *
+ * In every recursion step, the phase space is uses the generalization of the phase-space parametrization of
+ * Czakon, van Hameren, Mitor, Poncelet 2019, (1907.12911)
+ * What is treated as reference momentum and unresolved momentum is encoded in the tree. Details about the
+ * construction of the phase-space can be found in the manual.
+ *
+ * @param pp Born phase-space configuration. Can be generated e.g. with RAMBO or Splitting.
+ * @param clusterTree The Tree of Clusters which encodes how the phase-space is to be generated.
+ * @param x Variables to generate the momenta.
+ *          First index encodes the level in the tree.
+ *          Second index is the index of the unresolved Cluster/Parton inside the level
+ *          Third index defines the phase-space variable (eta, xi, phi)
+ */
+PhaseSpace GenMomenta(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std::vector<std::vector<std::vector<double>>> x);
 
-PESCPhaseSpace GenMomenta(const PhaseSpace pp, const std::vector<Cluster>& cluster);
+/**
+ * @brief Returns phase-space point using a recursive Splitting algorithm.
+ *
+ * Same as GenMomenta(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std::vector<std::vector<std::vector<double>>> x),
+ * but the phase-space variables are filled automatically by random numbers to allow for straight forward phase-space integration.
+ *
+ * @param pp Born phase-space configuration. Can be generated e.g. with RAMBO or Splitting.
+ * @param clusterTree The Tree of Clusters which encodes how the phase-space is to be generated.
+ */
+PhaseSpace GenMomenta(const PhaseSpace pp, const Tree<Cluster>& clusterTree);
 
-PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std::vector<std::vector<std::vector<double>>> x);
-
-PhaseSpace GenMomenta2(const PhaseSpace pp, const Tree<Cluster>& clusterTree);
-
+/**
+ * @brief Returns a list of all possible Trees that can generate a given number of unresolved momenta.
+ *
+ * The trees are not yet populated, i.e. the function returns trees which are not yet associated with any Born configuration.
+ * Thus the indices are not yet assigned. To populate the resulting tree, use the GenSectors function.
+ *
+ * @param nUnresolved Number of unresolved momenta to be generated.
+ */
 std::vector<Tree<Cluster>> GenTrees(int nUnresolved);
 
-std::vector<Tree<Cluster>> GenSectors(std::vector<int> flavor, const Tree<Cluster>& tree, int nBorn);
+/**
+ * @brief Populates a given tree.
+ *
+ * The trees are not yet populated, i.e. the function returns trees which are not yet associated with any Born configuration.
+ * Thus the indices are not yet assigned. To populate the resulting tree, use the GenSectors function.
+ *
+ * @param flavor List of length of the Born process. The list elements specify which of the Born momenta are allowed to split.
+ * For a subtraction scheme this means that these momenta belong to colored partons.
+ */
+std::vector<Tree<Cluster>> GenSectors(std::vector<bool> flavor, const Tree<Cluster>& tree, int nBorn);
 
+/**
+ * @brief Returns true if two trees are identical.
+ *
+ * @param tree1 First tree.
+ * @param tree2 Second tree.
+ */
 bool compareTrees(const Tree<Cluster>& tree1, const Tree<Cluster>& tree2);
 
 }
