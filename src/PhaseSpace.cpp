@@ -494,10 +494,17 @@ PhaseSpace GenMomenta(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std
   std::vector<TreeNode<Cluster>*> level = clusterTree.getLevel(level_int);
   int unresolved_counter = pp.size();
   int last_unresolved_counter = unresolved_counter;
+  // Loop over every level in the tree
   while(level.size() > 0) {
+    // Create vector of all Clusters in the level that will split
     std::vector<Cluster> currCluster;
     for(TreeNode<Cluster>* cluster : level) {
-      if(cluster->children.size() > 0)
+      // Only add cluster to the current level if:
+      //   a) It has more than one child -> Cluster must split in the future. The algorithm will however change the created unresolved momenta.
+      //      Thus it is important to generate hierarchies of limits in the correct order or the LT will result in a mismatch.
+      //   b) It has at least one child -> Cluster is considered reference and is thus not subject to LTs. But the algorithm fails if there are
+      //      no spectator present.
+      if(cluster->children.size() > 1)
         currCluster.push_back(cluster->data);
     }
     std::vector<std::vector<std::vector<double>>> currxPar;
@@ -536,17 +543,6 @@ PhaseSpace GenMomenta(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std
       }
       last_unresolved_counter = unresolved_counter;
     }
-    std::cout << "level " << level_int << std::endl;
-    for(int i = 0; i < currxPar_sorted.size(); i++) {
-      for(int j = 0; j < currxPar_sorted[i].size(); j++) {
-        for(int k = 0; k < currxPar_sorted[i][j].size(); k++) {
-          std::cout << currxPar_sorted[i][j][k] << ", ";
-        }
-        std::cout << std::endl;
-      }
-      std::cout << "stop" << std::endl;
-    }
-    pp_new.print();
 
     level_int++;
     level = clusterTree.getLevel(level_int);
@@ -886,6 +882,7 @@ std::vector<Tree<Cluster>> GenSectors(std::vector<bool> flavor, const Tree<Clust
   else if(nReference == flavor_indices.size()) { // No spectators (All Cluster are reference)
     // Copy first level
     std::unique_ptr<TreeNode<Cluster>> root = std::make_unique<TreeNode<Cluster>>(Cluster());
+    root->data.unresolved = 0;
     treeCopy.setRoot(std::move(root));
     for(int i = 0; i < nReference; i++) {
       std::unique_ptr<TreeNode<Cluster>> r = std::make_unique<TreeNode<Cluster>>(Cluster(true));

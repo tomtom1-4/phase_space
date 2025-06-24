@@ -89,15 +89,11 @@ int main() {
     tree.print();
   }
   PSF::Tree<PSF::Cluster> tree = trees[2];
-  std::cout << "marker0" << std::endl;
   std::vector<PSF::Tree<PSF::Cluster>> sectors = PSF::GenSectors(flavor, trees[2], 4);
-  std::cout << "marker1" << std::endl;
   for(int event_counter = 0; event_counter < samples; event_counter++) {
     PSF::Tree<PSF::Cluster> clusterTree = sectors[0];
-    clusterTree.print();
 
     PhaseSpace pp = PSF::GenMomenta(ppBorn, clusterTree);
-    pp.print();
     double integrand = 1.;
 
     result = result*event_counter/(event_counter + 1.) + pp.weight*integrand/(event_counter + 1.);
