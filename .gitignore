@@ -1,6 +1,7 @@
 .vscode/
 *.exe
 *.o
+*.so
 VEGAS
 src/Tree
 src/Utilities

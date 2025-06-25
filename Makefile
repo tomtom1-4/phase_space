@@ -4,7 +4,7 @@ LEVEL = 3
 USE_CUBA = true # true/false interface to CUBA MC integration using the VEGAS algorithm
 
 LIBS = -lm
-CXXFLAGS = -std=c++17 -O$(LEVEL)
+CXXFLAGS = -std=c++17 -O$(LEVEL) -fPIC
 
 ifeq ($(strip $(USE_CUBA)),true)
 	LIBS += -lcuba
@@ -24,7 +24,11 @@ OBJECTS = $(SOURCES:.cpp=.o)
 # Add CUBA objects if USE_CUBA=true
 OBJECTS += $(CUBA_OBJECTS)
 
-all: examples/gen_pp.exe examples/pp_integration.exe
+all: libphase_space.so
+
+# Build a shared library libmylib.so from the object files in src/
+%.so: $(OBJECTS)
+	$(CXX) -shared -o $@ $^
 
 # Build main.exe; only link in CUBA-related objects if USE_CUBA=true
 %.exe: %.o $(OBJECTS)
@@ -39,7 +43,7 @@ src/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f *.o *.exe examples/*.o examples/*.exe src/*.o
+	rm -f *.o *.exe src/*.o
 
 tests:
 	$(MAKE) -C tests

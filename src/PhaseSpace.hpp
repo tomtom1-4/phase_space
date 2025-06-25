@@ -343,8 +343,14 @@ class Cluster {
 
     Cluster() {};
 
+    /**
+     * @brief unresolved momenta of the cluster
+     */
     std::vector<Momentum> unresolved_momenta;
 
+    /**
+     * @brief reference momentum of the cluster
+     */
     Momentum reference_momentum;
 
     bool operator < (const Cluster& cluster2) const {
