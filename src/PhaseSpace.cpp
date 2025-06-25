@@ -498,13 +498,21 @@ PhaseSpace GenMomenta(const PhaseSpace pp, const Tree<Cluster>& clusterTree, std
   while(level.size() > 0) {
     // Create vector of all Clusters in the level that will split
     std::vector<Cluster> currCluster;
+    // check if we have spectators
+    int reference_momenta = 0;
+    for(TreeNode<Cluster>* cluster : level) {
+      if(cluster->data.isReference) reference_momenta++;
+    }
+    bool no_spectator = false;
+    if(reference_momenta == pp.size() - 2) no_spectator = true;
+
     for(TreeNode<Cluster>* cluster : level) {
       // Only add cluster to the current level if:
       //   a) It has more than one child -> Cluster must split in the future. The algorithm will however change the created unresolved momenta.
       //      Thus it is important to generate hierarchies of limits in the correct order or the LT will result in a mismatch.
       //   b) It has at least one child -> Cluster is considered reference and is thus not subject to LTs. But the algorithm fails if there are
       //      no spectator present.
-      if(cluster->children.size() > 1)
+      if(cluster->children.size() > (no_spectator?1:0))
         currCluster.push_back(cluster->data);
     }
     std::vector<std::vector<std::vector<double>>> currxPar;

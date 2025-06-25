@@ -96,6 +96,17 @@ Once you generated a phase-space point, ```phase_space``` will have already comp
 
 ```phase_space``` also allows performing the Monte-Carlo integration with important sampling using the VEGAS algorithm through an interface to [CUBA](https://feynarts.de/cuba/). Examples for such an interface can be found in ```VEGAS_interface```.
 
+### phase_space
+
+In the ```tests``` subdirectory, you can also find the source file ```phase_space.cpp```. You can compile it in the same manner as the example files. The program tests if the phase-space point is generated successfully, it verifies if the weights are computed correctly, by computing the phase-space volume with a Monte-Carlo integration, and it also tries to parametrize certain infrared limits.
+
+## Doxygen
+
+```phase_space``` uses [Doxygen](https://www.doxygen.nl/manual/install.html) documentation. To get the documentation, install [Doxygen](https://www.doxygen.nl/manual/install.html), then go to the ```docs``` subdirectory and run
+```bash
+doxygen Doxyfile
+```
+This will generate documentation for the library in a PDF (```latex/refman.pdf```) and an HTML format (```index.html```).
 
 ## References
 

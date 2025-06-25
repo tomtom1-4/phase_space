@@ -1,15 +1,32 @@
-LIBS = -lcuba -lm
+
+# optimization level, default is 3
+LEVEL = 3
+
+USE_CUBA = true # true/false interface to CUBA MC integration using the VEGAS algorithm
+
+LIBS = -L/home/tom/Uni/phd/NnLO/phase_space_parameterization -lphase_space -lm
+CXXFLAGS = -std=c++17 -O$(LEVEL)
+
+ifeq ($(strip $(USE_CUBA)),true)
+	LIBS += -lcuba
+	CXXFLAGS += -DUSE_CUBA
+endif
+
+export USE_CUBA CXXFLAGS LIBS
 
 all: phase_space.exe
 
-%.exe : %.o ../src/PhaseSpace.o ../src/Utilities.o ../src/Tree.o ../VEGAS_interface.o
-		g++  -std=c++17 -O3 -o $@ $^ $(LIBS)
 
-%.o : %.cpp ../src/PhaseSpace.cpp ../src/Utilities.cpp ../src/Tree.cpp ../VEGAS_interface.cpp
-		g++ -std=c++17 -O3 -o $@ -c $< $(LIBS)
+# Build main.exe; only link in CUBA-related objects if USE_CUBA=true
+%.exe: %.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
+
+# Generic rule to build .o files from .cpp files
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 
 clean:
 		rm -f *.o *.exe
 
 .PHONY: all clean
-.PRECIOUS: ../src/PhaseSpace.o ../src/Utilities.o ../src/Tree.o ../VEGAS_interface.o

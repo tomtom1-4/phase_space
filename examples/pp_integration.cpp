@@ -85,31 +85,33 @@ int main() {
   // print all possible trees
   for(int tree_counter = 0; tree_counter < trees.size(); tree_counter++) {
     PSF::Tree<PSF::Cluster> tree = trees[tree_counter];
-    std::cout << "tree_counter = " << tree_counter << std:: endl;
+    std::cout << "\ntree_counter = " << tree_counter << std:: endl;
     tree.print();
-  }
-  PSF::Tree<PSF::Cluster> tree = trees[2];
-  std::vector<PSF::Tree<PSF::Cluster>> sectors = PSF::GenSectors(flavor, trees[2], 4);
-  for(int event_counter = 0; event_counter < samples; event_counter++) {
-    PSF::Tree<PSF::Cluster> clusterTree = sectors[0];
+    std::cout << std::endl;
 
-    PhaseSpace pp = PSF::GenMomenta(ppBorn, clusterTree);
-    double integrand = 1.;
+  //PSF::Tree<PSF::Cluster> tree = trees[2];
+    std::vector<PSF::Tree<PSF::Cluster>> sectors = PSF::GenSectors(flavor, tree, ppBorn.size());
+    for(int event_counter = 0; event_counter < samples; event_counter++) {
+      PSF::Tree<PSF::Cluster> clusterTree = sectors[0];
 
-    result = result*event_counter/(event_counter + 1.) + pp.weight*integrand/(event_counter + 1.);
-    var = var*event_counter/(event_counter + 1.) + std::pow(pp.weight*integrand - result, 2)/(event_counter + 1.);
+      PhaseSpace pp = PSF::GenMomenta(ppBorn, clusterTree);
+      double integrand = 1.;
 
-    err = std::sqrt(var)/std::sqrt(event_counter);
+      result = result*event_counter/(event_counter + 1.) + pp.weight*integrand/(event_counter + 1.);
+      var = var*event_counter/(event_counter + 1.) + std::pow(pp.weight*integrand - result, 2)/(event_counter + 1.);
+
+      err = std::sqrt(var)/std::sqrt(event_counter);
 
 
-    if((event_counter + 1) % (samples/10) == 0) {
-      std::cout << std::setw(10) << std::setprecision(5) << event_counter + 1 << "/" << samples
-                  << std::setw(15) << result
-                  << " +- " << std::setw(6) << err
-                  << std::setw(2) << "(" << std::setw(7) << err/result*100 << "%)"
-                  << "    deviation: " << std::setw(10) << (result - control)/err
-                  << "    ratio: " << std::setw(10) << result/control
-                  << std::endl;
+      if((event_counter + 1) % (samples/10) == 0) {
+        std::cout << std::setw(10) << std::setprecision(5) << event_counter + 1 << "/" << samples
+                    << std::setw(15) << result
+                    << " +- " << std::setw(6) << err
+                    << std::setw(2) << "(" << std::setw(7) << err/result*100 << "%)"
+                    << "    deviation: " << std::setw(10) << (result - control)/err
+                    << "    ratio: " << std::setw(10) << result/control
+                    << std::endl;
+      }
     }
   }
   }

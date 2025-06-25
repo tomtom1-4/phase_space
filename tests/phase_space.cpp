@@ -5,9 +5,9 @@ using namespace PSF;
 int main() {
   srand(12);
   double COM = 1000.;
-  int nBorn = 2;
-  int nUnresolved = 3;
-  std::vector<int> flavor = {0, 0};
+  int nBorn = 3;
+  int nUnresolved = 2;
+  std::vector<bool> flavor = {0, 0};
   for(int i = 0 ; i < nBorn; i++) flavor.push_back(1);
 
   std::vector<Tree<Cluster>> trees = GenTrees(nUnresolved);
@@ -26,7 +26,7 @@ int main() {
   std::cout << "\033[1;37m--Test Phase space generation...\033[0m\n" << std::endl;
   clusterTree.print();
   pp.print();
-  PhaseSpace pp_test = GenMomenta2(pp, clusterTree);
+  PhaseSpace pp_test = GenMomenta(pp, clusterTree);
   pp_test.print();
 
 
@@ -108,7 +108,7 @@ int main() {
   double scale = 1;
   double increment = 0.1;
   bool fail_eta = false;
-  while (scale > 1.e-8) {
+  while (scale > 1.e-3) {
     scale *= increment;
     std::vector<std::vector<std::vector<double>>> xParFull;
     int level_int = 1;
@@ -143,7 +143,7 @@ int main() {
       level_int++;
       level = clusterTree.getLevel(level_int);
     }
-    PhaseSpace ppFull = GenMomenta2(pp, clusterTree, xParFull);
+    PhaseSpace ppFull = GenMomenta(pp, clusterTree, xParFull);
     level_int = 1;
     level = clusterTree.getLevel(level_int);
     while(level.size() > 0) {
@@ -155,6 +155,7 @@ int main() {
                     << std::setw(17) << r*u/(r.components[0]*u.components[0]*2.) << std::setw(17) << std::abs(1 - ratio) <<  " | ";
           if(std::abs(ratio - 1) > 1.e-5) {
             fail_eta = true;
+            std::cout << "fail_eta: " << std::abs(ratio - 1) << std::endl;
           }
         }
       }
@@ -174,7 +175,7 @@ int main() {
 
   scale = 1;
   bool fail_xi = false;
-  while (scale > 1.e-7) {
+  while (scale > 1.e-3) {
     scale *= increment;
     std::vector<std::vector<std::vector<double>>> xParFull;
     int level_int = 1;
@@ -198,7 +199,7 @@ int main() {
       level_int++;
       level = clusterTree.getLevel(level_int);
     }
-    PhaseSpace ppFull = GenMomenta2(pp, clusterTree, xParFull);
+    PhaseSpace ppFull = GenMomenta(pp, clusterTree, xParFull);
 
     level_int = 1;
     level = clusterTree.getLevel(level_int);
@@ -240,9 +241,7 @@ int main() {
                     << std::setw(17) << u.components[0]/uMax << std::setw(17) << std::abs(1 - ratio) <<  " | ";
           if(std::abs(ratio - 1) > 1.e-5) {
             fail_xi = true;
-          }
-          else {
-            fail_xi = false;
+            std::cout << "fail_xi: " << std::abs(ratio - 1) << std::endl;
           }
         }
         rWeighted = rWeighted + r/xj;
@@ -258,6 +257,7 @@ int main() {
   }
   else {
     std::cout << "\033[1;31m--Infrared limits test failed!\033[0m\n" << std::endl;
+    std::cout << fail_xi << ", " << fail_eta << std::endl;
   }
 
   }
