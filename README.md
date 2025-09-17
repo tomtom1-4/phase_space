@@ -10,7 +10,11 @@ git clone git@github.com:tomtom1-4/phase_space.git
 cd phase_space
 ```
 
-2. Configure: If you want to use phase space integrations with the VEGAS algorithm you can link the project to [CUBA](https://feynarts.de/cuba/). If you do not want to include CUBA, change ```USE_CUBA``` to false in the ```Makefile```.
+2. Configure: If you want to use phase space integrations with the VEGAS algorithm you can link the project to [CUBA](https://feynarts.de/cuba/). In that case, you have to add the environment variable
+```bash
+export CUBA_PATH=/path/to/your/CUBA/installation/
+```
+If you do not want to include CUBA, change ```USE_CUBA``` to false in the ```Makefile```.
 
 3. Build the library:
 ```bash

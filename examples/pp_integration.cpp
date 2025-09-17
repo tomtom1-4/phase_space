@@ -4,7 +4,7 @@
 #include "../src/Utilities.hpp"
 
 #ifdef USE_CUBA
-#include "/home/tom/Documents/software/software/Cuba-4.2.2/cuba.h"
+#include "cuba.h"
 #include "../VEGAS_interface.hpp"
 #endif
 

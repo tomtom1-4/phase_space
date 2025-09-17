@@ -2,7 +2,7 @@
 #include "src/PhaseSpace.hpp"
 #include "src/Tree.hpp"
 #include "src/Utilities.hpp"
-#include "/home/tom/Documents/software/software/Cuba-4.2.2/cuba.h"
+#include "cuba.h"
 #include "VEGAS_interface.hpp"
 
 using namespace PSF;

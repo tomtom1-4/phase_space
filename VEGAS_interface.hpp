@@ -4,7 +4,7 @@
 #include <iostream>
 #include "src/PhaseSpace.hpp"
 #include "src/Tree.hpp"
-#include "/home/tom/Documents/software/software/Cuba-4.2.2/cuba.h"
+#include "cuba.h"
 
 using namespace PSF;
 

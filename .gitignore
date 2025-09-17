@@ -8,3 +8,4 @@ src/Utilities
 src/PhaseSpace
 docs/html
 docs/latex
+env.sh

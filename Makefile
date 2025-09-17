@@ -8,7 +8,7 @@ CXXFLAGS = -std=c++17 -O$(LEVEL) -fPIC
 
 ifeq ($(strip $(USE_CUBA)),true)
 	LIBS += -lcuba
-	CXXFLAGS += -DUSE_CUBA
+	CXXFLAGS += -DUSE_CUBA -I$(CUBA_PATH)
 	CUBA_SOURCES = VEGAS_interface.cpp
 	CUBA_OBJECTS = VEGAS_interface.o
 else

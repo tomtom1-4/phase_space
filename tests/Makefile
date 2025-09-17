@@ -4,7 +4,7 @@ LEVEL = 3
 
 USE_CUBA = true # true/false interface to CUBA MC integration using the VEGAS algorithm
 
-LIBS = -L/home/tom/Uni/phd/NnLO/phase_space_parameterization -lphase_space -lm
+LIBS = -L$(PARENT_DIR) -lphase_space -lm
 CXXFLAGS = -std=c++17 -O$(LEVEL)
 
 ifeq ($(strip $(USE_CUBA)),true)
