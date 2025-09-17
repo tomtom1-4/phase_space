@@ -37,6 +37,7 @@ g++ -o your_project your_project.cpp -L/path/to/phase_space -lphase_space
 ```
 
 ## Getting started
+There is a short manual describing the basic algorithm for the generation of phase-space points in the ```docs``` directory.
 
 In the ```examples``` subdirectory you find two example source files. To compile them, first source the environment
 ```bash
